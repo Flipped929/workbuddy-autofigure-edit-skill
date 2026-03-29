@@ -168,6 +168,302 @@ footer a:hover{color:var(--blue)}
 /* export toast */
 #toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(0,170,255,.9);color:#fff;padding:12px 28px;border-radius:99px;font-size:14px;font-weight:600;z-index:9999;transition:transform .4s ease,opacity .4s ease;opacity:0;pointer-events:none}
 #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ── SELECTION HANDLES ── */
+.sel-handle{
+  position:absolute;width:9px;height:9px;border-radius:2px;
+  background:#fff;border:1.5px solid #00aaff;
+  box-shadow:0 0 6px rgba(0,170,255,.8);
+  pointer-events:auto;cursor:nwse-resize;z-index:80;
+  transform:translate(-50%,-50%);
+  transition:background .15s;
+}
+.sel-handle:hover{background:#00aaff;}
+.sel-handle[data-dir="n"]{cursor:ns-resize;}
+.sel-handle[data-dir="s"]{cursor:ns-resize;}
+.sel-handle[data-dir="e"]{cursor:ew-resize;}
+.sel-handle[data-dir="w"]{cursor:ew-resize;}
+.sel-handle[data-dir="ne"]{cursor:nesw-resize;}
+.sel-handle[data-dir="sw"]{cursor:nesw-resize;}
+.sel-handle[data-dir="nw"]{cursor:nwse-resize;}
+.sel-handle[data-dir="se"]{cursor:nwse-resize;}
+#sel-border{
+  position:absolute;pointer-events:none;z-index:78;
+  border:1.5px dashed rgba(0,170,255,.7);border-radius:3px;
+  box-shadow:0 0 10px rgba(0,170,255,.2);
+}
+
+/* ── CONNECTOR LAYER ── */
+#connector-svg{position:absolute;inset:0;pointer-events:none;z-index:70;overflow:visible;}
+/* connector as data-editable in main svg coordinate space */
+[data-editable="connector"]{stroke:rgba(0,200,255,.8);stroke-width:1.8;fill:none;cursor:pointer;}
+[data-editable="connector"].selected{stroke:rgba(255,180,0,.95);stroke-width:2.5;filter:drop-shadow(0 0 4px rgba(255,180,0,.6));}
+.conn-port{
+  position:absolute;width:11px;height:11px;border-radius:50%;
+  background:#00aaff;border:2px solid #fff;
+  transform:translate(-50%,-50%);z-index:85;
+  cursor:crosshair;opacity:0;transition:opacity .2s;pointer-events:auto;
+}
+.edit-mode [data-editable]:hover .conn-port,
+.conn-port.visible{opacity:1;}
+
+/* ── LOCKED element ── */
+[data-locked]{cursor:not-allowed!important;}
+[data-locked]:hover{filter:none!important;}
+.lock-badge{
+  position:absolute;font-size:11px;background:rgba(255,100,0,.7);
+  border-radius:4px;padding:1px 5px;pointer-events:none;z-index:82;
+  color:#fff;font-weight:700;letter-spacing:.04em;
+}
+
+/* ── GRID OVERLAY ── */
+#grid-overlay{
+  position:absolute;inset:0;pointer-events:none;z-index:1;
+  display:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size:40px 40px;
+}
+#grid-overlay.visible{display:block;}
+
+/* ── Z-ORDER feedback ── */
+@keyframes zflash{0%{opacity:.6}50%{opacity:1}100%{opacity:.6}}
+
+/* ── TB divider ── */
+.tb-group-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.28);letter-spacing:.08em;text-transform:uppercase;margin-right:2px;white-space:nowrap;}
+
+/* ── ICON PANEL ── */
+#icon-panel{
+  display:none;position:fixed;z-index:200;
+  background:rgba(10,10,22,.97);border:1px solid rgba(0,170,255,.35);
+  border-radius:16px;padding:16px;min-width:320px;
+  box-shadow:0 24px 60px rgba(0,0,0,.7),0 0 40px rgba(0,170,255,.12);
+  backdrop-filter:blur(24px);
+}
+#icon-panel.visible{display:block;}
+.icon-panel-title{font-size:12px;font-weight:700;color:var(--blue);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.icon-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.icon-item{
+  width:44px;height:44px;border-radius:10px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .18s;
+}
+.icon-item:hover{background:rgba(0,170,255,.2);border-color:rgba(0,170,255,.5);transform:scale(1.1);}
+.icon-item svg{width:22px;height:22px;}
+#icon-panel-close{
+  position:absolute;top:10px;right:12px;
+  background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:18px;line-height:1;
+}
+#icon-panel-close:hover{color:#fff;}
+
+/* ── CONNECTOR END-POINT handles ── */
+.conn-ep{
+  position:absolute;width:12px;height:12px;border-radius:50%;
+  background:#00aaff;border:2px solid #fff;
+  transform:translate(-50%,-50%);z-index:86;
+  cursor:crosshair;pointer-events:auto;
+  box-shadow:0 0 6px rgba(0,170,255,.8);
+  display:none;
+}
+.conn-ep:hover{background:#fff;border-color:#00aaff;}
+
+/* ── Connector selectable in main-svg ── */
+.svg-wrap.edit-mode [data-editable="connector"]{pointer-events:stroke;cursor:pointer;}
+.svg-wrap.edit-mode [data-editable="connector"]:hover{stroke:rgba(0,200,255,1);filter:drop-shadow(0 0 4px rgba(0,200,255,.9));}
+.svg-wrap.edit-mode [data-editable="connector"].selected{stroke:rgba(255,180,0,1);filter:drop-shadow(0 0 6px rgba(255,180,0,.9));}
+
+/* ── circle/ellipse hover ── */
+.svg-wrap.edit-mode circle[data-editable]:hover,
+.svg-wrap.edit-mode ellipse[data-editable]:hover{filter:brightness(1.4) drop-shadow(0 0 6px rgba(0,170,255,.8));}
+
+/* ── path/polygon/polyline hover ── */
+.svg-wrap.edit-mode path[data-editable]:hover,
+.svg-wrap.edit-mode polygon[data-editable]:hover,
+.svg-wrap.edit-mode polyline[data-editable]:hover,
+.svg-wrap.edit-mode line[data-editable]:hover{filter:brightness(1.4) drop-shadow(0 0 6px rgba(0,170,255,.8));}
+
+/* ══ LAYERS PANEL ══ */
+#layers-panel{
+  position:fixed;right:0;top:0;bottom:0;width:260px;z-index:500;
+  background:rgba(8,8,18,.97);border-left:1px solid rgba(255,255,255,.1);
+  display:flex;flex-direction:column;transform:translateX(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:-12px 0 40px rgba(0,0,0,.5);
+}
+#layers-panel.open{transform:translateX(0);}
+#layers-panel-header{
+  display:flex;align-items:center;gap:10px;padding:14px 16px;
+  border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;
+}
+#layers-panel-header span{font-size:13px;font-weight:700;color:#fff;flex:1;letter-spacing:.04em;}
+#layers-panel-close{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:6px;}
+#layers-panel-close:hover{background:rgba(255,255,255,.1);color:#fff;}
+#layers-list{flex:1;overflow-y:auto;padding:6px 0;}
+#layers-list::-webkit-scrollbar{width:4px;}
+#layers-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+.layer-item{
+  display:flex;align-items:center;gap:8px;padding:7px 14px;
+  cursor:pointer;transition:background .15s;user-select:none;
+  border-left:2px solid transparent;
+}
+.layer-item:hover{background:rgba(255,255,255,.05);}
+.layer-item.selected{background:rgba(0,170,255,.12);border-left-color:var(--blue);}
+.layer-item.multi-sel{background:rgba(255,160,0,.1);border-left-color:#ffa000;}
+.layer-thumb{
+  width:22px;height:22px;border-radius:5px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;
+  border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);
+}
+.layer-name{flex:1;font-size:12px;color:rgba(255,255,255,.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.layer-item.selected .layer-name{color:#fff;font-weight:600;}
+.layer-vis,.layer-lock-btn{
+  width:22px;height:22px;border-radius:5px;border:none;background:none;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;opacity:.45;transition:opacity .15s;flex-shrink:0;color:#fff;font-size:12px;
+}
+.layer-vis:hover,.layer-lock-btn:hover{opacity:1;background:rgba(255,255,255,.1);}
+.layer-item.hidden-el .layer-name{opacity:.3;text-decoration:line-through;}
+
+/* ══ RIGHT-CLICK CONTEXT MENU ══ */
+#ctx-menu{
+  position:fixed;z-index:9000;min-width:190px;
+  background:rgba(10,10,22,.98);border:1px solid rgba(255,255,255,.15);
+  border-radius:12px;padding:6px 0;
+  box-shadow:0 16px 48px rgba(0,0,0,.7),0 0 24px rgba(0,170,255,.08);
+  backdrop-filter:blur(24px);display:none;
+}
+#ctx-menu.visible{display:block;}
+.ctx-item{
+  display:flex;align-items:center;gap:10px;padding:8px 16px;
+  font-size:13px;color:rgba(255,255,255,.75);cursor:pointer;transition:background .15s;
+  white-space:nowrap;
+}
+.ctx-item:hover{background:rgba(0,170,255,.18);color:#fff;}
+.ctx-item.danger{color:#ff8080;}
+.ctx-item.danger:hover{background:rgba(255,80,80,.18);}
+.ctx-item.disabled{opacity:.35;pointer-events:none;}
+.ctx-sep{height:1px;background:rgba(255,255,255,.08);margin:4px 0;}
+.ctx-sub-label{padding:5px 16px 3px;font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;}
+.ctx-icon{width:16px;text-align:center;flex-shrink:0;}
+.ctx-item .ctx-badge{margin-left:auto;font-size:10px;color:rgba(255,255,255,.3);font-family:monospace;}
+
+/* ══ ELEMENT OVERLAY PICKER (多层选择) ══ */
+#overlap-picker{
+  position:fixed;z-index:8900;min-width:200px;
+  background:rgba(10,10,22,.98);border:1px solid rgba(0,170,255,.4);
+  border-radius:12px;padding:8px 0;
+  box-shadow:0 16px 48px rgba(0,0,0,.7);backdrop-filter:blur(24px);display:none;
+}
+#overlap-picker.visible{display:block;}
+.overlap-title{padding:6px 14px 4px;font-size:10px;font-weight:700;color:rgba(0,170,255,.8);letter-spacing:.08em;text-transform:uppercase;}
+.overlap-item{
+  display:flex;align-items:center;gap:10px;padding:7px 14px;
+  font-size:12px;color:rgba(255,255,255,.75);cursor:pointer;transition:background .15s;
+}
+.overlap-item:hover{background:rgba(0,170,255,.15);color:#fff;}
+.overlap-item.current{background:rgba(0,170,255,.1);border-left:2px solid var(--blue);}
+.overlap-thumb{width:20px;height:20px;border-radius:4px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;}
+
+/* ══ INLINE PROPERTIES (底部属性条) ══ */
+#prop-bar{
+  display:none;align-items:center;gap:12px;flex-wrap:wrap;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:8px 16px;margin-bottom:12px;font-size:12px;color:rgba(255,255,255,.5);
+}
+#prop-bar.visible{display:flex;}
+.prop-tag{font-weight:700;color:var(--blue);background:rgba(0,170,255,.1);padding:2px 8px;border-radius:6px;}
+.prop-kv{display:flex;gap:4px;align-items:center;}
+.prop-k{color:rgba(255,255,255,.35);}
+.prop-v{color:rgba(255,255,255,.75);font-family:monospace;}
+
+/* ── Tab-cycle selection indicator ── */
+#tab-cycle-hint{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(0,170,255,.9);color:#fff;padding:6px 16px;border-radius:20px;
+  font-size:12px;font-weight:600;pointer-events:none;z-index:90;
+  opacity:0;transition:opacity .3s;
+}
+#tab-cycle-hint.show{opacity:1;}
+
+/* ── 图层面板触发按钮 ── */
+#btn-layers{
+  position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:490;
+  background:rgba(0,170,255,.2);border:1px solid rgba(0,170,255,.4);
+  border-radius:8px 0 0 8px;padding:12px 8px;cursor:pointer;
+  writing-mode:vertical-rl;font-size:12px;font-weight:700;
+  color:var(--blue);letter-spacing:.08em;
+  transition:background .2s;display:none;
+}
+#btn-layers.visible{display:block;}
+#btn-layers:hover{background:rgba(0,170,255,.35);}
+
+/* ══ GROUP 组合元素 ══ */
+[data-group-id]{outline:none;}
+.svg-wrap.edit-mode [data-group-id].selected{
+  filter:brightness(1.5) drop-shadow(0 0 12px rgba(100,255,180,1));
+}
+.svg-wrap.edit-mode [data-group-id].multi-selected{
+  filter:brightness(1.3) drop-shadow(0 0 8px rgba(100,255,180,.8));
+}
+/* Group bounding box indicator */
+#group-bbox{
+  position:absolute;pointer-events:none;z-index:77;
+  border:2px dashed rgba(100,255,180,.7);border-radius:4px;
+  box-shadow:0 0 8px rgba(100,255,180,.3);display:none;
+}
+.group-label{
+  position:absolute;pointer-events:none;z-index:78;
+  background:rgba(100,255,180,.2);border:1px solid rgba(100,255,180,.5);
+  border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;
+  color:rgba(100,255,180,.9);letter-spacing:.04em;display:none;
+}
+
+/* ══ CANVAS ZOOM & PAN ══ */
+#canvas-viewport{
+  position:relative;overflow:hidden;
+  border-radius:24px;
+  touch-action:none;
+  cursor:default;
+  min-height:400px;
+  /* Ensure overflow hidden works with fixed children */
+  isolation:isolate;
+}
+#canvas-inner{
+  transform-origin:0 0;
+  will-change:transform;
+  transition:none;
+  display:inline-block;
+  min-width:100%;
+}
+/* Zoom controls HUD */
+#zoom-hud{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:8px;z-index:200;
+  background:rgba(8,8,18,.88);border:1px solid rgba(255,255,255,.12);
+  border-radius:20px;padding:5px 14px;backdrop-filter:blur(20px);
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+  user-select:none;
+}
+.zoom-btn{
+  width:26px;height:26px;border-radius:6px;border:none;
+  background:rgba(255,255,255,.1);color:#fff;font-size:16px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.zoom-btn:hover{background:rgba(0,170,255,.3);}
+#zoom-label{
+  font-size:12px;font-weight:600;color:rgba(255,255,255,.7);min-width:42px;text-align:center;font-family:monospace;
+  cursor:pointer;
+}
+#zoom-label:hover{color:var(--blue);}
+.zoom-fit-btn{
+  font-size:11px;font-weight:600;color:rgba(255,255,255,.5);background:none;
+  border:none;cursor:pointer;padding:0 4px;transition:color .15s;
+}
+.zoom-fit-btn:hover{color:var(--blue);}
+
 </style>
 </head>
 <body>
@@ -197,13 +493,37 @@ footer a:hover{color:var(--blue)}
     <span class="tb-label">编辑器</span>
     <button class="tb-btn" id="btn-edit-mode" onclick="toggleEditMode()">✏️ 开启编辑</button>
     <div class="tb-sep"></div>
+
+    <span class="tb-group-label">历史</span>
     <button class="tb-btn" id="btn-undo" onclick="undo()" disabled title="撤回 Ctrl+Z">↩ 撤回</button>
     <button class="tb-btn" id="btn-redo" onclick="redo()" disabled title="重做 Ctrl+Y">↪ 重做</button>
     <div class="tb-sep"></div>
+
+    <span class="tb-group-label">插入</span>
     <button class="tb-btn" id="btn-add-text" onclick="addText()" disabled>＋ 文字</button>
     <button class="tb-btn" id="btn-add-rect" onclick="addRect()" disabled>▭ 方块</button>
+    <button class="tb-btn" id="btn-add-circle" onclick="addCircle()" disabled>○ 圆形</button>
+    <button class="tb-btn" id="btn-add-arrow" onclick="addArrow()" disabled>→ 箭头</button>
+    <button class="tb-btn" id="btn-add-icon" onclick="toggleIconPanel()" disabled title="插入风格化图标">⬡ 图标</button>
+    <button class="tb-btn" id="btn-connector" onclick="toggleConnectorMode()" disabled title="连接线模式：点击源元素 → 点击目标元素">🔗 连接线</button>
     <div class="tb-sep"></div>
-    <span class="tb-label" style="font-size:11px">对齐</span>
+
+    <span class="tb-group-label">编辑</span>
+    <button class="tb-btn" id="btn-copy"   onclick="copySelected()"  disabled title="复制 Ctrl+C">⎘ 复制</button>
+    <button class="tb-btn" id="btn-paste"  onclick="pasteClipboard()" disabled title="粘贴 Ctrl+V">⎘ 粘贴</button>
+    <button class="tb-btn" id="btn-dup"    onclick="duplicateSelected()" disabled title="就地复制 Ctrl+D">⬛ 复制到</button>
+    <button class="tb-btn danger" id="btn-delete" onclick="deleteSelected()" disabled>🗑 删除</button>
+    <div class="tb-sep"></div>
+
+    <span class="tb-group-label">图层</span>
+    <button class="tb-btn" id="btn-bring-top"    onclick="zOrder('top')"    disabled title="置顶">⇈ 置顶</button>
+    <button class="tb-btn" id="btn-bring-fwd"    onclick="zOrder('fwd')"    disabled title="上移一层">↑ 上移</button>
+    <button class="tb-btn" id="btn-send-bwd"     onclick="zOrder('bwd')"    disabled title="下移一层">↓ 下移</button>
+    <button class="tb-btn" id="btn-send-bottom"  onclick="zOrder('bottom')" disabled title="置底">⇊ 置底</button>
+    <button class="tb-btn" id="btn-lock"  onclick="toggleLock()" disabled title="锁定/解锁元素">🔒 锁定</button>
+    <div class="tb-sep"></div>
+
+    <span class="tb-group-label">对齐</span>
     <button class="tb-btn" id="btn-align-left"   onclick="alignElements('left')"   disabled title="左对齐">⬛︎←</button>
     <button class="tb-btn" id="btn-align-cx"     onclick="alignElements('cx')"     disabled title="横向居中">⬛︎↔</button>
     <button class="tb-btn" id="btn-align-right"  onclick="alignElements('right')"  disabled title="右对齐">→⬛︎</button>
@@ -213,6 +533,25 @@ footer a:hover{color:var(--blue)}
     <button class="tb-btn" id="btn-dist-h"       onclick="distributeElements('h')" disabled title="横向均匀分布">↔ 均布</button>
     <button class="tb-btn" id="btn-dist-v"       onclick="distributeElements('v')" disabled title="纵向均匀分布">↕ 均布</button>
     <div class="tb-sep"></div>
+
+    <span class="tb-group-label">组合</span>
+    <button class="tb-btn" id="btn-group"   onclick="groupSelected()"   disabled title="组合选中元素 Ctrl+G">⬜ 组合</button>
+    <button class="tb-btn" id="btn-ungroup" onclick="ungroupSelected()" disabled title="取消组合 Ctrl+Shift+G">⬛ 解组</button>
+    <div class="tb-sep"></div>
+
+    <span class="tb-group-label">视图</span>
+    <button class="tb-btn" onclick="zoomStep(-1)" title="缩小 Ctrl+-">🔍−</button>
+    <button class="tb-btn" onclick="zoomReset()"  title="复位 Ctrl+0">100%</button>
+    <button class="tb-btn" onclick="zoomStep(1)"  title="放大 Ctrl+=">🔍+</button>
+    <button class="tb-btn" onclick="zoomFit()"    title="适合画布">适合</button>
+    <div class="tb-sep"></div>
+
+    <span class="tb-group-label">网格</span>
+    <button class="tb-btn" id="btn-grid" onclick="toggleGrid()" title="显示/隐藏网格 G">▦ 网格</button>
+    <button class="tb-btn" id="btn-snap-grid" onclick="toggleSnapGrid()" title="网格吸附">⊞ 吸附</button>
+    <button class="tb-btn" id="btn-layers-tb" onclick="toggleLayersPanel()" title="图层面板 F7">🗂 图层</button>
+    <div class="tb-sep"></div>
+
     <span class="tb-label" style="font-size:11px">填充</span>
     <div class="tb-color-wrap" id="fill-wrap">
       <div class="tb-color-preview" id="fill-preview" style="background:#00aaff"></div>
@@ -224,17 +563,34 @@ footer a:hover{color:var(--blue)}
       <input type="color" id="text-color" value="#ffffff" oninput="applyTextColor(this.value)"/>
     </div>
     <div class="tb-sep"></div>
-    <button class="tb-btn danger" id="btn-delete" onclick="deleteSelected()" disabled>🗑 删除</button>
-    <div class="tb-sep"></div>
     <button class="tb-btn" onclick="exportSVG()">💾 SVG</button>
     <button class="tb-btn" onclick="exportPNG()">🖼 PNG</button>
     <span id="edit-hint">点击「开启编辑」，然后点击 SVG 中任意元素即可编辑</span>
   </div>
 
+  <!-- Properties Bar (under toolbar) -->
+  <div id="prop-bar">
+    <span class="prop-tag" id="prop-tag">rect</span>
+    <span class="prop-kv"><span class="prop-k">x</span><span class="prop-v" id="prop-x">—</span></span>
+    <span class="prop-kv"><span class="prop-k">y</span><span class="prop-v" id="prop-y">—</span></span>
+    <span class="prop-kv"><span class="prop-k">w</span><span class="prop-v" id="prop-w">—</span></span>
+    <span class="prop-kv"><span class="prop-k">h</span><span class="prop-v" id="prop-h">—</span></span>
+    <span class="prop-kv" id="prop-uid-kv"><span class="prop-k">id</span><span class="prop-v" id="prop-uid">—</span></span>
+    <span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.25)">Tab=切换选择 · 右键=图层菜单</span>
+  </div>
+
   <!-- SVG Showcase -->
   <div class="svg-wrap reveal" id="svg-container">
-    <div id="drag-hint">✦ 拖拽移动 · 单击选中 · Ctrl+单击多选 · Shift框选</div>
+    <div id="canvas-viewport">
+      <div id="canvas-inner">
+    <div id="grid-overlay"></div>
+    <div id="drag-hint">✦ 拖拽移动所有元素 · 单击选中 · 连接线可拖动端点</div>
     <div id="rubber-band"></div>
+    <div id="sel-border" style="display:none"></div>
+    <div id="group-bbox"></div>
+    <!-- Connector SVG overlay (now only for endpoint handles overlay) -->
+    <svg id="connector-svg" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;pointer-events:none;z-index:70;overflow:visible;">
+    </svg>
     <!-- alignment guides: generated dynamically by JS -->
     <svg id="main-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
       <defs>
@@ -296,6 +652,15 @@ footer a:hover{color:var(--blue)}
           <stop offset="0%" style="stop-color:#0af;stop-opacity:0.8"/>
           <stop offset="100%" style="stop-color:#a060ff;stop-opacity:0.8"/>
         </linearGradient>
+        <marker id="arrowhead" markerWidth="8" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0, 8 3.5, 0 7" fill="rgba(0,200,255,.85)"/>
+        </marker>
+        <marker id="arrowhead-sel" markerWidth="8" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0, 8 3.5, 0 7" fill="rgba(255,180,0,.9)"/>
+        </marker>
+        <marker id="arrowhead-plain" markerWidth="8" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0, 8 3.5, 0 7" fill="#a060ff"/>
+        </marker>
         <pattern id="dot" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
           <circle cx="20" cy="20" r="1" fill="white"/>
         </pattern>
@@ -478,12 +843,70 @@ footer a:hover{color:var(--blue)}
         <span id="popup-rect-opacity-val" style="font-size:12px;color:rgba(255,255,255,.5);width:32px">100%</span>
       </div>
     </div>
+    <div id="popup-connector-fields" style="display:none">
+      <div class="popup-row">
+        <label>线色</label>
+        <input type="color" id="popup-conn-stroke" value="#00c8ff" oninput="liveConnStroke(this.value)"/>
+        <span style="font-size:12px;color:rgba(255,255,255,.4)">连接线颜色</span>
+      </div>
+      <div class="popup-row">
+        <label>线宽</label>
+        <input type="range" id="popup-conn-width" min="1" max="8" step="0.5" value="1.8" oninput="liveConnWidth(this.value)"/>
+        <span id="popup-conn-width-val" style="font-size:12px;color:rgba(255,255,255,.5);width:28px">1.8</span>
+      </div>
+      <div class="popup-row">
+        <label>样式</label>
+        <select id="popup-conn-style" onchange="liveConnStyle(this.value)" style="flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 10px;font-size:13px;color:#fff;outline:none;">
+          <option value="solid">实线</option>
+          <option value="dashed">虚线</option>
+          <option value="dotted">点线</option>
+        </select>
+      </div>
+    </div>
+    <div id="popup-icon-fields" style="display:none">
+      <div class="popup-row">
+        <label>图标色</label>
+        <input type="color" id="popup-icon-fill" value="#00aaff" oninput="liveIconFill(this.value)"/>
+        <span style="font-size:12px;color:rgba(255,255,255,.4)">主色</span>
+      </div>
+      <div class="popup-row">
+        <label>尺寸</label>
+        <input type="range" id="popup-icon-size" min="20" max="120" value="40" oninput="liveIconSize(this.value)"/>
+        <span id="popup-icon-size-val" style="font-size:12px;color:rgba(255,255,255,.5);width:32px">40</span>
+      </div>
+      <div class="popup-row">
+        <label>透明度</label>
+        <input type="range" id="popup-icon-opacity" min="0" max="100" value="100" oninput="liveIconOpacity(this.value)"/>
+        <span id="popup-icon-opacity-val" style="font-size:12px;color:rgba(255,255,255,.5);width:32px">100%</span>
+      </div>
+    </div>
     <div class="popup-btns">
       <button class="popup-btn ok" onclick="applyEdit()">✓ 应用</button>
       <button class="popup-btn cancel" onclick="closePopup()">✕ 取消</button>
     </div>
   </div>
 
+  <!-- Icon picker panel -->
+  <div id="icon-panel">
+    <div class="icon-panel-title">⬡ 插入图标</div>
+    <button id="icon-panel-close" onclick="toggleIconPanel()">✕</button>
+    <div class="icon-grid" id="icon-grid"></div>
+  </div>
+
+  <!-- Connector endpoint handles -->
+  <div id="conn-ep-src" class="conn-ep"></div>
+  <div id="conn-ep-dst" class="conn-ep"></div>
+  <!-- Tab cycle indicator -->
+  <div id="tab-cycle-hint"></div>
+  </div><!-- end canvas-inner -->
+  <!-- Zoom HUD -->
+  <div id="zoom-hud">
+    <button class="zoom-btn" onclick="zoomStep(-1)" title="缩小 -">−</button>
+    <span id="zoom-label" onclick="zoomReset()" title="点击复位 100%">100%</span>
+    <button class="zoom-btn" onclick="zoomStep(1)" title="放大 +">+</button>
+    <button class="zoom-fit-btn" onclick="zoomFit()" title="适合窗口">适合</button>
+  </div>
+  </div><!-- end canvas-viewport -->
   <!-- Pipeline section -->
   <section class="reveal" style="margin-bottom:64px">
     <h2 class="section-title">四步全自动流水线</h2>
@@ -541,6 +964,48 @@ footer a:hover{color:var(--blue)}
 
 <div id="toast">✓ 已复制到剪贴板</div>
 
+<!-- ══ LAYERS PANEL ══ -->
+<button id="btn-layers" title="图层面板 (F7)">图<br>层</button>
+<div id="layers-panel">
+  <div id="layers-panel-header">
+    <span>🗂 图层</span>
+    <button id="layers-panel-close" onclick="toggleLayersPanel()">✕</button>
+  </div>
+  <div id="layers-list"></div>
+</div>
+
+<!-- ══ RIGHT-CLICK CONTEXT MENU ══ -->
+<div id="ctx-menu">
+  <div class="ctx-sub-label">选择</div>
+  <div class="ctx-item" id="ctx-select-here" onclick="ctxSelectHere()"><span class="ctx-icon">👆</span>此处的元素…</div>
+  <div class="ctx-item" id="ctx-select-all" onclick="ctxSelectAll()"><span class="ctx-icon">⬛</span>全选 <span class="ctx-badge">Ctrl+A</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-sub-label">编辑</div>
+  <div class="ctx-item" id="ctx-copy" onclick="copySelected();closeCtxMenu()"><span class="ctx-icon">⎘</span>复制 <span class="ctx-badge">Ctrl+C</span></div>
+  <div class="ctx-item" id="ctx-paste" onclick="pasteClipboard();closeCtxMenu()"><span class="ctx-icon">⎘</span>粘贴 <span class="ctx-badge">Ctrl+V</span></div>
+  <div class="ctx-item" id="ctx-dup" onclick="duplicateSelected();closeCtxMenu()"><span class="ctx-icon">⬛</span>复制到此 <span class="ctx-badge">Ctrl+D</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-sub-label">图层顺序</div>
+  <div class="ctx-item" id="ctx-bring-top" onclick="zOrder('top');closeCtxMenu()"><span class="ctx-icon">⇈</span>置顶</div>
+  <div class="ctx-item" id="ctx-bring-fwd" onclick="zOrder('fwd');closeCtxMenu()"><span class="ctx-icon">↑</span>上移一层</div>
+  <div class="ctx-item" id="ctx-send-bwd" onclick="zOrder('bwd');closeCtxMenu()"><span class="ctx-icon">↓</span>下移一层</div>
+  <div class="ctx-item" id="ctx-send-bottom" onclick="zOrder('bottom');closeCtxMenu()"><span class="ctx-icon">⇊</span>置底</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" id="ctx-lock" onclick="toggleLock();closeCtxMenu()"><span class="ctx-icon">🔒</span>锁定/解锁</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-sub-label">组合</div>
+  <div class="ctx-item" id="ctx-group"   onclick="groupSelected();closeCtxMenu()"><span class="ctx-icon">⬜</span>组合 <span class="ctx-badge">Ctrl+G</span></div>
+  <div class="ctx-item" id="ctx-ungroup" onclick="ungroupSelected();closeCtxMenu()"><span class="ctx-icon">⬛</span>解组 <span class="ctx-badge">Ctrl+⇧+G</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" id="ctx-delete" onclick="deleteSelected();closeCtxMenu()"><span class="ctx-icon">🗑</span>删除 <span class="ctx-badge">Del</span></div>
+</div>
+
+<!-- ══ OVERLAP PICKER (重叠元素选择) ══ -->
+<div id="overlap-picker">
+  <div class="overlap-title">此处的元素</div>
+  <div id="overlap-list"></div>
+</div>
+
 <script>
 // ── Stars ──
 const starsEl = document.getElementById('stars');
@@ -556,97 +1021,112 @@ const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersec
 document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
 
 // ═══════════════════════════════════════════════════
-//  EDITOR STATE
+//  GLOBAL STATE
 // ═══════════════════════════════════════════════════
 let editMode=false;
 let selectedEl=null;
-let multiSelection=[]; // array of elements for multi-select
-
-// ── Undo/Redo Stack ──
+let multiSelection=[];
 const MAX_HISTORY=60;
-let undoStack=[];  // [{type, data}]
+let undoStack=[];
 let redoStack=[];
 
+// Grid / snap
+let gridVisible=false;
+let snapToGrid=false;
+const GRID_SIZE=20; // SVG units
+
+// Connector mode
+let connectorMode=false;
+let connSrc=null;
+const connections=[];
+let connIdCounter=0;
+
+// Clipboard
+let clipboard=null;
+
+// Canvas zoom / pan state
+let canvasScale=1.0;
+let canvasPanX=0;
+let canvasPanY=0;
+const ZOOM_MIN=0.1;
+const ZOOM_MAX=5.0;
+const ZOOM_STEP=0.15;
+let isPanning=false;
+let panStartX=0, panStartY=0;
+
+// Group counter
+let groupIdCounter=0;
+
+// ═══════════════════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════════════════
 function pushHistory(entry){
   undoStack.push(entry);
   if(undoStack.length>MAX_HISTORY) undoStack.shift();
   redoStack=[];
   refreshUndoRedoBtns();
 }
-
 function refreshUndoRedoBtns(){
-  document.getElementById('btn-undo').disabled = undoStack.length===0;
-  document.getElementById('btn-redo').disabled = redoStack.length===0;
+  document.getElementById('btn-undo').disabled=!undoStack.length;
+  document.getElementById('btn-redo').disabled=!redoStack.length;
 }
-
-// Snapshot an element's position attrs
 function snapshotPos(el){
   const tag=el.tagName.toLowerCase();
-  if(tag==='g'){
-    return {transform: el.getAttribute('transform')||''};
-  } else if(tag==='circle'||tag==='ellipse'){
-    return {cx:el.getAttribute('cx'),cy:el.getAttribute('cy')};
-  } else {
-    return {x:el.getAttribute('x'),y:el.getAttribute('y')};
-  }
+  if(tag==='g') return {transform:el.getAttribute('transform')||''};
+  if(tag==='circle'||tag==='ellipse') return {cx:el.getAttribute('cx'),cy:el.getAttribute('cy')};
+  if(tag==='line') return {x1:el.getAttribute('x1'),y1:el.getAttribute('y1'),x2:el.getAttribute('x2'),y2:el.getAttribute('y2')};
+  return {x:el.getAttribute('x'),y:el.getAttribute('y'),width:el.getAttribute('width'),height:el.getAttribute('height')};
 }
 function restorePos(el,snap){
-  if(snap.transform!==undefined) el.setAttribute('transform',snap.transform);
-  if(snap.x!==undefined) el.setAttribute('x',snap.x);
-  if(snap.y!==undefined) el.setAttribute('y',snap.y);
-  if(snap.cx!==undefined) el.setAttribute('cx',snap.cx);
-  if(snap.cy!==undefined) el.setAttribute('cy',snap.cy);
+  Object.keys(snap).forEach(k=>{ if(snap[k]!==null&&snap[k]!==undefined) el.setAttribute(k,snap[k]); });
 }
-
-// Snapshot full attrs for style changes
 function snapshotStyle(el){
   const s={};
-  const attrs=['fill','stroke','stroke-width','opacity','font-size'];
-  attrs.forEach(a=>{ const v=el.getAttribute(a); if(v!==null) s[a]=v; });
-  s._text = el.textContent;
+  ['fill','stroke','stroke-width','stroke-dasharray','opacity','font-size','width','height','transform'].forEach(a=>{
+    const v=el.getAttribute(a); if(v!==null) s[a]=v;
+  });
+  s._text=el.textContent;
+  // for icon: also capture the wrapper color
+  if(el.dataset&&el.dataset.editable==='icon'){
+    const w=el.querySelector('g[style]');
+    if(w) s._iconColor=w.style.color||'';
+  }
   return s;
 }
 function restoreStyle(el,snap){
   Object.keys(snap).forEach(k=>{
     if(k==='_text') el.textContent=snap[k];
+    else if(k==='_iconColor'){ const w=el.querySelector('g[style]'); if(w) w.style.color=snap[k]; }
     else el.setAttribute(k,snap[k]);
   });
 }
-
 function undo(){
   if(!undoStack.length) return;
-  const entry=undoStack.pop();
-  redoStack.push(entry);
+  const entry=undoStack.pop(); redoStack.push(entry);
   applyHistoryEntry(entry,'undo');
-  refreshUndoRedoBtns();
-  showToast('↩ 已撤回');
+  refreshUndoRedoBtns(); hideHandles(); showToast('Undone');
 }
 function redo(){
   if(!redoStack.length) return;
-  const entry=redoStack.pop();
-  undoStack.push(entry);
+  const entry=redoStack.pop(); undoStack.push(entry);
   applyHistoryEntry(entry,'redo');
-  refreshUndoRedoBtns();
-  showToast('↪ 已重做');
+  refreshUndoRedoBtns(); hideHandles(); showToast('Redone');
 }
-
 function applyHistoryEntry(entry,dir){
   const svg=document.getElementById('main-svg');
-  if(entry.type==='move'){
+  if(entry.type==='move'||entry.type==='resize'){
     const snap=dir==='undo'?entry.before:entry.after;
-    // support multi-move
     entry.elements.forEach((id,i)=>{
       const el=svg.querySelector(`[data-uid="${id}"]`);
-      if(el) restorePos(el, snap[i]);
+      if(el) restorePos(el,snap[i]);
     });
   } else if(entry.type==='style'){
     const el=svg.querySelector(`[data-uid="${entry.uid}"]`);
-    if(el) restoreStyle(el, dir==='undo'?entry.before:entry.after);
+    if(el) restoreStyle(el,dir==='undo'?entry.before:entry.after);
   } else if(entry.type==='add'){
     const el=svg.querySelector(`[data-uid="${entry.uid}"]`);
-    if(dir==='undo'){
-      if(el) el.remove();
-    } else {
+    if(dir==='undo'){ if(el) el.remove(); }
+    else {
       const node=new DOMParser().parseFromString(entry.outerHTML,'image/svg+xml').documentElement;
       svg.appendChild(svg.ownerDocument.adoptNode(node));
       attachOneDragListener(svg.querySelector(`[data-uid="${entry.uid}"]`));
@@ -657,355 +1137,598 @@ function applyHistoryEntry(entry,dir){
       svg.appendChild(svg.ownerDocument.adoptNode(node));
       attachOneDragListener(svg.querySelector(`[data-uid="${entry.uid}"]`));
     } else {
-      const el=svg.querySelector(`[data-uid="${entry.uid}"]`);
-      if(el) el.remove();
+      const el=svg.querySelector(`[data-uid="${entry.uid}"]`); if(el) el.remove();
     }
   } else if(entry.type==='multi-move'){
     const snap=dir==='undo'?entry.before:entry.after;
     entry.uids.forEach((uid,i)=>{
-      const el=svg.querySelector(`[data-uid="${uid}"]`);
-      if(el) restorePos(el,snap[i]);
+      const el=svg.querySelector(`[data-uid="${uid}"]`); if(el) restorePos(el,snap[i]);
     });
+  } else if(entry.type==='z-order'){
+    // Restore DOM sibling order by re-inserting before the recorded nextSibling uid
+    const el=svg.querySelector(`[data-uid="${entry.uid}"]`); if(!el) return;
+    const nextUid=dir==='undo'?entry.beforeNextSiblingUid:entry.afterNextSiblingUid;
+    if(nextUid){
+      const ref=svg.querySelector(`[data-uid="${nextUid}"]`);
+      if(ref) svg.insertBefore(el,ref); else svg.appendChild(el);
+    } else {
+      svg.appendChild(el);
+    }
+    updateHandlesPosition(); updateConnectorLines();
+  } else if(entry.type==='lock'){
+    const el=svg.querySelector(`[data-uid="${entry.uid}"]`); if(!el) return;
+    const locked=dir==='undo'?entry.before:entry.after;
+    if(locked) el.dataset.locked='1'; else { el.removeAttribute('data-locked'); delete el.dataset.locked; }
+    updateLockBtn();
+  } else if(entry.type==='connector-add'){
+    if(dir==='undo'){
+      const c=connections.find(c=>c.uid===entry.connUid);
+      if(c){ c.el.remove(); connections.splice(connections.indexOf(c),1); hideConnEpHandles(); }
+    } else {
+      addConnectorLine(entry.srcUid, entry.dstUid, entry.connUid);
+      // restore style if saved
+      const c=connections.find(c=>c.uid===entry.connUid);
+      if(c&&entry.stroke){ c.el.setAttribute('stroke',entry.stroke); c.el.setAttribute('stroke-width',entry.strokeWidth||'1.8'); if(entry.dasharray) c.el.setAttribute('stroke-dasharray',entry.dasharray); }
+    }
+  } else if(entry.type==='connector-delete'){
+    if(dir==='undo'){
+      addConnectorLine(entry.srcUid, entry.dstUid, entry.connUid);
+      const c=connections.find(c=>c.uid===entry.connUid);
+      if(c&&entry.stroke){ c.el.setAttribute('stroke',entry.stroke); c.el.setAttribute('stroke-width',entry.strokeWidth||'1.8'); if(entry.dasharray) c.el.setAttribute('stroke-dasharray',entry.dasharray); }
+    } else {
+      const c=connections.find(c=>c.uid===entry.connUid);
+      if(c){ c.el.remove(); connections.splice(connections.indexOf(c),1); hideConnEpHandles(); }
+    }
+  } else if(entry.type==='group'){
+    if(dir==='undo'){
+      // Undo group: restore original elements, remove the group wrapper
+      const grpEl=svg.querySelector(`[data-uid="${entry.groupUid}"]`);
+      if(grpEl) grpEl.remove();
+      (entry.childrenHTML||[]).forEach(h=>{
+        const parser=new DOMParser();
+        const doc=parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${h}</svg>`,'image/svg+xml');
+        const node=doc.querySelector('[data-uid]');
+        if(node){ svg.appendChild(svg.ownerDocument.adoptNode(node)); attachOneDragListener(svg.lastElementChild); }
+      });
+    } else {
+      // Redo group: rebuild group from child UIDs
+      const children=(entry.childUIDs||[]).map(uid=>svg.querySelector(`[data-uid="${uid}"]`)).filter(Boolean);
+      if(children.length>1) _buildGroup(children, entry.groupUid, entry.gid);
+    }
+    deselectAll(); multiSelection=[]; refreshLayersPanel(); hideHandles();
+  } else if(entry.type==='ungroup'){
+    if(dir==='undo'){
+      // Undo ungroup: re-group the children back
+      const children=(entry.childUIDs||[]).map(uid=>svg.querySelector(`[data-uid="${uid}"]`)).filter(Boolean);
+      if(children.length>1) _buildGroup(children, entry.groupUid, entry.gid);
+    } else {
+      // Redo ungroup: dissolve the group
+      const grpEl=svg.querySelector(`[data-uid="${entry.groupUid}"]`);
+      if(grpEl) _dissolveGroup(grpEl);
+    }
+    deselectAll(); multiSelection=[]; refreshLayersPanel(); hideHandles();
   }
 }
 
+// ── Group helper: wrap children in a <g> with given uid ──
+function _buildGroup(children, groupUid, gid){
+  const svg=document.getElementById('main-svg');
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('data-editable','group');
+  g.setAttribute('data-group-id',gid||('grp-'+groupUid));
+  g.dataset.uid=groupUid;
+  const sorted=[...children].sort((a,b)=>a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING?-1:1);
+  let firstEl=sorted[0];
+  svg.insertBefore(g,firstEl);
+  sorted.forEach(el=>{ el.classList.remove('selected','multi-selected'); g.appendChild(el); });
+  if(!g.getAttribute('transform')) g.setAttribute('transform','translate(0,0)');
+  attachOneDragListener(g);
+  return g;
+}
+// ── Group helper: dissolve a <g> back to flat elements ──
+function _dissolveGroup(g){
+  const svg=document.getElementById('main-svg');
+  const [tx,ty]=getTranslateTuple(g);
+  const children=[...g.children];
+  const refNode=g.nextSibling;
+  children.forEach(child=>{
+    if(tx!==0||ty!==0){
+      const tag=child.tagName.toLowerCase();
+      if(tag==='g'){ const [cx,cy]=getTranslateTuple(child); child.setAttribute('transform',`translate(${cx+tx},${cy+ty})`); }
+      else if(tag==='circle'||tag==='ellipse'){ child.setAttribute('cx',parseFloat(child.getAttribute('cx')||0)+tx); child.setAttribute('cy',parseFloat(child.getAttribute('cy')||0)+ty); }
+      else if(tag==='line'){ child.setAttribute('x1',parseFloat(child.getAttribute('x1')||0)+tx); child.setAttribute('y1',parseFloat(child.getAttribute('y1')||0)+ty); child.setAttribute('x2',parseFloat(child.getAttribute('x2')||0)+tx); child.setAttribute('y2',parseFloat(child.getAttribute('y2')||0)+ty); }
+      else { child.setAttribute('x',parseFloat(child.getAttribute('x')||0)+tx); child.setAttribute('y',parseFloat(child.getAttribute('y')||0)+ty); }
+    }
+    svg.insertBefore(child,refNode);
+    attachOneDragListener(child);
+  });
+  g.remove();
+}
+
 // ═══════════════════════════════════════════════════
-//  UID SYSTEM — assign unique id to every editable el
+//  UID SYSTEM + AUTO-DETECT ALL ELEMENTS
 // ═══════════════════════════════════════════════════
 let uidCounter=1000;
-function ensureUID(el){
-  if(!el.dataset.uid) el.dataset.uid=String(uidCounter++);
+function ensureUID(el){ if(!el.dataset.uid) el.dataset.uid=String(uidCounter++); }
+
+// Tags that are drawable/interactive SVG elements (not structural)
+const EDITABLE_TAGS=new Set(['rect','circle','ellipse','line','polyline','polygon','path','text','g','use','image']);
+// Tags to skip: background/glow rects, defs, etc.
+function shouldMakeEditable(el){
+  const tag=el.tagName.toLowerCase();
+  if(!EDITABLE_TAGS.has(tag)) return false;
+  // Skip defs children
+  if(el.closest('defs')) return false;
+  // Skip elements inside a g that already has data-editable (they're sub-elements)
+  const parentG=el.closest('g[data-editable]');
+  if(parentG&&parentG!==el) return false;
+  // For g: only direct children of main-svg or those already with data-editable
+  if(tag==='g'){
+    if(el.parentElement&&el.parentElement.id==='main-svg') return true;
+    if(el.dataset.editable) return true;
+    return false;
+  }
+  // Skip background structural elements by their fill pattern
+  const fill=el.getAttribute('fill')||'';
+  if(fill==='url(#bgGrad)'||fill==='url(#dot)') return false; // bg rect and dot pattern
+  // Skip fullscreen decorative rects/ellipses (width=1200 & height=800 => full canvas bg)
+  if(tag==='rect'){
+    const w=parseFloat(el.getAttribute('width')||0);
+    const h=parseFloat(el.getAttribute('height')||0);
+    if(w>=1200&&h>=800) return false; // background rect
+  }
+  // Skip large decorative ellipses used as glow blobs
+  if(tag==='ellipse'){
+    const rx=parseFloat(el.getAttribute('rx')||0);
+    if(rx>200) return false; // large glow blob
+  }
+  return true;
+}
+
+function guessEditableType(el){
+  if(el.dataset.editable) return el.dataset.editable; // already set
+  const tag=el.tagName.toLowerCase();
+  if(tag==='text') return 'text';
+  if(tag==='line') return 'connector-free'; // free line (not connector)
+  if(tag==='rect'||tag==='circle'||tag==='ellipse') return 'rect';
+  if(tag==='path'||tag==='polygon'||tag==='polyline') return 'shape';
+  if(tag==='g') return 'icon';
+  if(tag==='image') return 'image';
+  return 'rect';
 }
 function initAllUIDs(){
-  document.querySelectorAll('[data-editable]').forEach(ensureUID);
-}
-
-// ═══════════════════════════════════════════════════
-//  DRAG STATE
-// ═══════════════════════════════════════════════════
-let dragEl=null;
-let dragMulti=[];   // [{el, beforeSnap, origX, origY, origTx, origTy}]
-let dragStartX=0;
-let dragStartY=0;
-let dragMoved=false;
-
-// SVG bounding box in SVG coords
-function getElBox(el){
   const svg=document.getElementById('main-svg');
-  try{
-    const b=el.getBBox();
-    // getBBox returns the geometric bounding box in SVG coords already
-    return {x:b.x,y:b.y,w:b.width,h:b.height,cx:b.x+b.width/2,cy:b.y+b.height/2,r:b.x+b.width,bot:b.y+b.height};
-  }catch(err){return null;}
+  // Walk all descendants
+  const all=Array.from(svg.querySelectorAll('*'));
+  all.forEach(el=>{
+    if(el.closest('defs')) return;
+    if(!shouldMakeEditable(el)) return;
+    if(!el.dataset.editable){
+      el.setAttribute('data-editable', guessEditableType(el));
+    }
+    ensureUID(el);
+  });
 }
 
+
+// ═══════════════════════════════════════════════════
+//  COORDINATE HELPERS
+// ═══════════════════════════════════════════════════
+function getElBox(el){
+  try{ const b=el.getBBox(); return {x:b.x,y:b.y,w:b.width,h:b.height,cx:b.x+b.width/2,cy:b.y+b.height/2,r:b.x+b.width,bot:b.y+b.height}; }
+  catch(e){ return null; }
+}
 function screenToSVGDelta(svg,dx,dy){
-  const rect=svg.getBoundingClientRect();
-  const vb=svg.viewBox.baseVal;
+  const rect=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
   return {dx:dx*(vb.width/rect.width), dy:dy*(vb.height/rect.height)};
 }
-function screenToSVGPoint(svg,cx,cy){
-  const rect=svg.getBoundingClientRect();
-  const vb=svg.viewBox.baseVal;
-  return {x:(cx-rect.left)*(vb.width/rect.width)+vb.x, y:(cy-rect.top)*(vb.height/rect.height)+vb.y};
+function svgToScreen(svg,x,y){
+  const rect=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
+  return {x:(x-vb.x)*(rect.width/vb.width)+rect.left, y:(y-vb.y)*(rect.height/vb.height)+rect.top};
 }
-
 function getTranslateTuple(el){
   const t=el.getAttribute('transform')||'';
   const m=t.match(/translate\(\s*([-\d.]+)\s*,?\s*([-\d.]+)\s*\)/);
   return m?[parseFloat(m[1]),parseFloat(m[2])]:[0,0];
 }
-
 function getElPosXY(el){
   const tag=el.tagName.toLowerCase();
-  if(tag==='g'){
-    const [tx,ty]=getTranslateTuple(el);
-    return {x:tx,y:ty,isTx:true};
-  } else if(tag==='circle'||tag==='ellipse'){
-    return {x:parseFloat(el.getAttribute('cx')||0),y:parseFloat(el.getAttribute('cy')||0),isCxy:true};
-  } else {
-    return {x:parseFloat(el.getAttribute('x')||0),y:parseFloat(el.getAttribute('y')||0)};
-  }
+  if(tag==='g'){ const [tx,ty]=getTranslateTuple(el); return {x:tx,y:ty}; }
+  if(tag==='circle'||tag==='ellipse') return {x:parseFloat(el.getAttribute('cx')||0),y:parseFloat(el.getAttribute('cy')||0)};
+  if(tag==='line') return {x:parseFloat(el.getAttribute('x1')||0),y:parseFloat(el.getAttribute('y1')||0)};
+  return {x:parseFloat(el.getAttribute('x')||0),y:parseFloat(el.getAttribute('y')||0)};
 }
 function setElPosXY(el,nx,ny){
   const tag=el.tagName.toLowerCase();
-  if(tag==='g'){
-    el.setAttribute('transform',`translate(${nx},${ny})`);
-  } else if(tag==='circle'||tag==='ellipse'){
-    el.setAttribute('cx',nx); el.setAttribute('cy',ny);
-  } else {
-    el.setAttribute('x',nx); el.setAttribute('y',ny);
+  if(tag==='g') el.setAttribute('transform',`translate(${nx},${ny})`);
+  else if(tag==='circle'||tag==='ellipse'){ el.setAttribute('cx',nx); el.setAttribute('cy',ny); }
+  else if(tag==='line'){
+    const dx=nx-parseFloat(el.getAttribute('x1')||0);
+    const dy=ny-parseFloat(el.getAttribute('y1')||0);
+    el.setAttribute('x1',nx); el.setAttribute('y1',ny);
+    el.setAttribute('x2',parseFloat(el.getAttribute('x2')||0)+dx);
+    el.setAttribute('y2',parseFloat(el.getAttribute('y2')||0)+dy);
+  }
+  else { el.setAttribute('x',nx); el.setAttribute('y',ny); }
+}
+
+// ═══════════════════════════════════════════════════
+//  GRID SNAP
+// ═══════════════════════════════════════════════════
+function snapV(v){ return snapToGrid?Math.round(v/GRID_SIZE)*GRID_SIZE:v; }
+
+// ═══════════════════════════════════════════════════
+//  PROPERTIES BAR
+// ═══════════════════════════════════════════════════
+function updatePropBar(el){
+  const bar=document.getElementById('prop-bar');
+  if(!el||!editMode){ bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  const tag=el.tagName.toLowerCase();
+  document.getElementById('prop-tag').textContent=el.dataset.editable||tag;
+  document.getElementById('prop-uid').textContent=el.dataset.uid||'—';
+  try{
+    const b=el.getBBox();
+    document.getElementById('prop-x').textContent=b.x.toFixed(0);
+    document.getElementById('prop-y').textContent=b.y.toFixed(0);
+    document.getElementById('prop-w').textContent=b.width.toFixed(0);
+    document.getElementById('prop-h').textContent=b.height.toFixed(0);
+  }catch(e){
+    ['prop-x','prop-y','prop-w','prop-h'].forEach(id=>document.getElementById(id).textContent='—');
   }
 }
+
+// ═══════════════════════════════════════════════════
+//  LAYERS PANEL
+// ═══════════════════════════════════════════════════
+let layersPanelOpen=false;
+function toggleLayersPanel(){
+  layersPanelOpen=!layersPanelOpen;
+  document.getElementById('layers-panel').classList.toggle('open',layersPanelOpen);
+  if(layersPanelOpen) refreshLayersPanel();
+}
+function getElementIcon(el){
+  const tag=el.tagName.toLowerCase();
+  const type=el.dataset.editable||'';
+  if(type==='text'||tag==='text') return '𝐓';
+  if(type==='connector') return '↗';
+  if(type==='connector-free') return '—';
+  if(type==='icon') return '⬡';
+  if(tag==='rect') return '▭';
+  if(tag==='circle') return '○';
+  if(tag==='ellipse') return '◯';
+  if(tag==='line') return '╱';
+  if(tag==='path') return '✒';
+  if(tag==='polygon') return '⬠';
+  if(tag==='polyline') return '⌇';
+  if(tag==='g') return '⊞';
+  if(tag==='image') return '🖼';
+  return '◈';
+}
+function getElementLabel(el,idx){
+  const tag=el.tagName.toLowerCase();
+  const type=el.dataset.editable||'';
+  if(type==='text'||tag==='text'){
+    const txt=(el.textContent||'').trim().slice(0,18);
+    return txt||'文字';
+  }
+  if(type==='connector') return `连接线 #${el.dataset.uid||idx}`;
+  if(type==='icon'){
+    const idx2=el.dataset.iconIdx;
+    if(idx2!==undefined&&ICON_LIB[idx2]) return `图标: ${ICON_LIB[idx2].name}`;
+    return '图标组';
+  }
+  const fill=el.getAttribute('fill')||el.getAttribute('stroke')||'';
+  const colorPart=fill&&fill!=='none'?` (${fill.slice(0,9)})`:' ';
+  return `${tag}${colorPart}#${el.dataset.uid||idx}`;
+}
+function refreshLayersPanel(){
+  if(!layersPanelOpen) return;
+  const svg=document.getElementById('main-svg');
+  const list=document.getElementById('layers-list');
+  list.innerHTML='';
+  // Reverse order (top layers first like draw.io)
+  const els=Array.from(svg.querySelectorAll('[data-editable]')).reverse();
+  els.forEach((el,idx)=>{
+    const item=document.createElement('div');
+    item.className='layer-item';
+    if(selectedEl===el) item.classList.add('selected');
+    if(multiSelection.includes(el)) item.classList.add('multi-sel');
+    const hidden=el.getAttribute('visibility')==='hidden'||el.style.visibility==='hidden';
+    if(hidden) item.classList.add('hidden-el');
+    item.dataset.uid=el.dataset.uid;
+
+    const thumb=document.createElement('div');
+    thumb.className='layer-thumb';
+    thumb.textContent=getElementIcon(el);
+
+    const name=document.createElement('div');
+    name.className='layer-name';
+    name.textContent=getElementLabel(el,idx);
+
+    const vis=document.createElement('button');
+    vis.className='layer-vis';
+    vis.title=hidden?'显示':'隐藏';
+    vis.textContent=hidden?'👁️‍🗨️':'👁';
+    vis.onclick=function(e){
+      e.stopPropagation();
+      if(hidden){ el.removeAttribute('visibility'); el.style.visibility=''; }
+      else { el.setAttribute('visibility','hidden'); }
+      refreshLayersPanel();
+    };
+
+    const lockBtn=document.createElement('button');
+    lockBtn.className='layer-lock-btn';
+    lockBtn.title=el.dataset.locked==='1'?'解锁':'锁定';
+    lockBtn.textContent=el.dataset.locked==='1'?'🔒':'🔓';
+    lockBtn.onclick=function(e){
+      e.stopPropagation();
+      if(el.dataset.locked==='1'){ el.removeAttribute('data-locked'); delete el.dataset.locked; }
+      else el.dataset.locked='1';
+      refreshLayersPanel();
+    };
+
+    item.appendChild(thumb); item.appendChild(name); item.appendChild(vis); item.appendChild(lockBtn);
+    item.onclick=function(e){
+      if(e.ctrlKey||e.metaKey){ toggleMultiSelect(el); }
+      else {
+        deselectAll(); hideHandles(); hideConnEpHandles();
+        selectedEl=el; el.classList.add('selected');
+        document.getElementById('btn-delete').disabled=false;
+        document.getElementById('btn-copy').disabled=false;
+        document.getElementById('btn-dup').disabled=false;
+        showHandles(el); updateLockBtn(); updateZOrderBtns(true);
+        updatePropBar(el);
+        if(el.dataset.editable==='connector'){
+          const conn=connections.find(c=>c.uid===el.dataset.uid);
+          if(conn) showConnEpHandles(conn);
+        }
+      }
+      refreshLayersPanel();
+    };
+    list.appendChild(item);
+  });
+  if(!els.length) list.innerHTML='<div style="padding:20px;text-align:center;color:rgba(255,255,255,.3);font-size:12px;">无可编辑元素</div>';
+}
+
+
 
 // ═══════════════════════════════════════════════════
 //  SMART ALIGNMENT GUIDES
 // ═══════════════════════════════════════════════════
-const SNAP_THRESH=8; // SVG units
-
+const SNAP_THRESH=8;
 let activeGuides=[];
-
-function clearGuides(){
-  document.querySelectorAll('.align-guide').forEach(g=>g.remove());
-  activeGuides=[];
-}
-
-// Returns snap candidate positions from all other editable elements
+function clearGuides(){ document.querySelectorAll('.align-guide').forEach(g=>g.remove()); activeGuides=[]; }
 function computeSnapTargets(excludeEls){
   const svg=document.getElementById('main-svg');
-  const allEls=Array.from(svg.querySelectorAll('[data-editable]')).filter(e=>!excludeEls.includes(e));
-  const targets=[];
-  allEls.forEach(e=>{
-    const b=getElBox(e);
-    if(!b) return;
-    targets.push({x:b.x,type:'vl',label:'left'});
-    targets.push({x:b.cx,type:'vc',label:'cx'});
-    targets.push({x:b.r,type:'vr',label:'right'});
-    targets.push({y:b.y,type:'ht',label:'top'});
-    targets.push({y:b.cy,type:'hc',label:'cy'});
-    targets.push({y:b.bot,type:'hb',label:'bottom'});
+  return Array.from(svg.querySelectorAll('[data-editable]')).filter(e=>!excludeEls.includes(e)).flatMap(e=>{
+    const b=getElBox(e); if(!b) return [];
+    return [{x:b.x,type:'vl'},{x:b.cx,type:'vc'},{x:b.r,type:'vr'},{y:b.y,type:'ht'},{y:b.cy,type:'hc'},{y:b.bot,type:'hb'}];
   });
-  return targets;
 }
-
-// Given current drag position, find snaps and draw guides
-// Returns {snapDx, snapDy} adjustments
-function applySnapAndGuides(draggedEls, proposedBoxes){
+function applySnapAndGuides(draggedEls,proposedBoxes){
   clearGuides();
   const svg=document.getElementById('main-svg');
-  const svgRect=svg.getBoundingClientRect();
-  const vb=svg.viewBox.baseVal;
-  const scaleX=svgRect.width/vb.width;
-  const scaleY=svgRect.height/vb.height;
-
+  const svgRect=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
+  const scaleX=svgRect.width/vb.width, scaleY=svgRect.height/vb.height;
   const targets=computeSnapTargets(draggedEls);
-  let bestSnapDx=null, bestSnapDy=null;
-  let snapDist=SNAP_THRESH+1;
-
-  // collect the bounding box edges of dragged group
+  let bestSnapDx=0,bestSnapDy=0;
+  const guideLines=new Set();
   const xs=proposedBoxes.flatMap(b=>[b.x,b.cx,b.r]);
   const ys=proposedBoxes.flatMap(b=>[b.y,b.cy,b.bot]);
-
-  const guideLines=new Set();
-
-  // Horizontal snaps (y-axis)
-  targets.filter(t=>t.type==='ht'||t.type==='hc'||t.type==='hb').forEach(t=>{
-    ys.forEach(y=>{
-      const d=Math.abs(y-t.y);
-      if(d<SNAP_THRESH){
-        const sd=d;
-        if(sd<snapDist||(bestSnapDy!==null&&sd<Math.abs(bestSnapDy))){
-          bestSnapDy=t.y-y;
-          snapDist=sd;
-        }
-        guideLines.add('h:'+t.y.toFixed(1));
-      }
-    });
+  targets.filter(t=>['ht','hc','hb'].includes(t.type)).forEach(t=>{
+    ys.forEach(y=>{ const d=y-t.y; if(Math.abs(d)<SNAP_THRESH){ if(!bestSnapDy||Math.abs(d)<Math.abs(bestSnapDy)) bestSnapDy=-d; guideLines.add('h:'+t.y.toFixed(1)); } });
   });
-
-  // Vertical snaps (x-axis)
-  targets.filter(t=>t.type==='vl'||t.type==='vc'||t.type==='vr').forEach(t=>{
-    xs.forEach(x=>{
-      const d=Math.abs(x-t.x);
-      if(d<SNAP_THRESH){
-        guideLines.add('v:'+t.x.toFixed(1));
-      }
-    });
+  targets.filter(t=>['vl','vc','vr'].includes(t.type)).forEach(t=>{
+    xs.forEach(x=>{ const d=x-t.x; if(Math.abs(d)<SNAP_THRESH){ if(!bestSnapDx||Math.abs(d)<Math.abs(bestSnapDx)) bestSnapDx=-d; guideLines.add('v:'+t.x.toFixed(1)); } });
   });
-
-  if(bestSnapDy===null) bestSnapDy=0;
-  if(bestSnapDx===null) bestSnapDx=0;
-
-  // Draw guide lines
   const container=document.getElementById('svg-container');
   guideLines.forEach(gl=>{
-    const g=document.createElement('div');
-    g.className='align-guide';
-    if(gl.startsWith('h:')){
-      const svgY=parseFloat(gl.slice(2));
-      const screenY=(svgY-vb.y)*scaleY;
-      g.classList.add('h');
-      g.style.top=screenY+'px';
-    } else {
-      const svgX=parseFloat(gl.slice(2));
-      const screenX=(svgX-vb.x)*scaleX;
-      g.classList.add('v');
-      g.style.left=screenX+'px';
-    }
-    container.appendChild(g);
-    activeGuides.push(g);
+    const g=document.createElement('div'); g.className='align-guide';
+    if(gl.startsWith('h:')){ g.classList.add('h'); g.style.top=((parseFloat(gl.slice(2))-vb.y)*scaleY)+'px'; }
+    else { g.classList.add('v'); g.style.left=((parseFloat(gl.slice(2))-vb.x)*scaleX)+'px'; }
+    container.appendChild(g); activeGuides.push(g);
   });
+  return {snapDx:bestSnapDx,snapDy:bestSnapDy};
+}
 
-  return {snapDx:bestSnapDx, snapDy:bestSnapDy};
+// ═══════════════════════════════════════════════════
+//  SELECTION HANDLES (resize)
+// ═══════════════════════════════════════════════════
+let handleEls=[];
+let resizing=false, resizeDir='', resizeStartX=0, resizeStartY=0;
+let resizeOrigBox=null, resizeEl=null, resizeBeforeSnap=null;
+
+function showHandles(el){
+  hideHandles();
+  if(!el) return;
+  resizeEl=el;
+  const svg=document.getElementById('main-svg');
+  const container=document.getElementById('svg-container');
+  const b=getElBox(el); if(!b) return;
+  const selBorder=document.getElementById('sel-border');
+  const tl=svgToScreen(svg,b.x,b.y), br=svgToScreen(svg,b.r,b.bot);
+  const cRect=container.getBoundingClientRect();
+  const left=tl.x-cRect.left, top=tl.y-cRect.top, w=br.x-tl.x, h=br.y-tl.y;
+  selBorder.style.cssText=`display:block;left:${left}px;top:${top}px;width:${Math.max(w,2)}px;height:${Math.max(h,2)}px;`;
+  // Don't show resize handles for connector lines (handled by ep handles) or icons (group scale)
+  if(el.dataset.editable==='connector'||el.dataset.editable==='icon') return;
+  const pts=[{dx:0,dy:0,dir:'nw'},{dx:.5,dy:0,dir:'n'},{dx:1,dy:0,dir:'ne'},{dx:1,dy:.5,dir:'e'},{dx:1,dy:1,dir:'se'},{dx:.5,dy:1,dir:'s'},{dx:0,dy:1,dir:'sw'},{dx:0,dy:.5,dir:'w'}];
+  pts.forEach(({dx,dy,dir})=>{
+    const hEl=document.createElement('div'); hEl.className='sel-handle'; hEl.dataset.dir=dir;
+    hEl.style.left=(left+w*dx)+'px'; hEl.style.top=(top+h*dy)+'px';
+    hEl.addEventListener('mousedown',e=>startResize(e,dir,el,b));
+    container.appendChild(hEl); handleEls.push(hEl);
+  });
+}
+function hideHandles(){
+  handleEls.forEach(h=>h.remove()); handleEls=[];
+  const sb=document.getElementById('sel-border'); if(sb) sb.style.display='none';
+  resizeEl=null;
+}
+function updateHandlesPosition(){
+  if(!resizeEl||!handleEls.length) return;
+  const svg=document.getElementById('main-svg'); const container=document.getElementById('svg-container');
+  const b=getElBox(resizeEl); if(!b) return;
+  const tl=svgToScreen(svg,b.x,b.y), br=svgToScreen(svg,b.r,b.bot);
+  const cRect=container.getBoundingClientRect();
+  const left=tl.x-cRect.left, top=tl.y-cRect.top, w=br.x-tl.x, h=br.y-tl.y;
+  const sb=document.getElementById('sel-border');
+  sb.style.cssText=`display:block;left:${left}px;top:${top}px;width:${w}px;height:${h}px;`;
+  const pts=[{dx:0,dy:0},{dx:.5,dy:0},{dx:1,dy:0},{dx:1,dy:.5},{dx:1,dy:1},{dx:.5,dy:1},{dx:0,dy:1},{dx:0,dy:.5}];
+  pts.forEach(({dx,dy},i)=>{ if(handleEls[i]){ handleEls[i].style.left=(left+w*dx)+'px'; handleEls[i].style.top=(top+h*dy)+'px'; } });
+}
+function startResize(e,dir,el,b){
+  e.preventDefault(); e.stopPropagation();
+  resizing=true; resizeDir=dir; resizeStartX=e.clientX; resizeStartY=e.clientY;
+  resizeOrigBox={...b}; resizeBeforeSnap=snapshotPos(el);
+  document.addEventListener('mousemove',onResizeMove);
+  document.addEventListener('mouseup',onResizeEnd);
+}
+function onResizeMove(e){
+  if(!resizing||!resizeEl) return;
+  const svg=document.getElementById('main-svg');
+  const {dx,dy}=screenToSVGDelta(svg,e.clientX-resizeStartX,e.clientY-resizeStartY);
+  const b=resizeOrigBox; const tag=resizeEl.tagName.toLowerCase();
+  if(tag!=='rect') return;
+  let nx=b.x, ny=b.y, nw=b.w, nh=b.h;
+  const d=resizeDir;
+  if(d.includes('e')) nw=Math.max(10,b.w+dx);
+  if(d.includes('w')){ nx=b.x+dx; nw=Math.max(10,b.w-dx); }
+  if(d.includes('s')) nh=Math.max(10,b.h+dy);
+  if(d.includes('n')){ ny=b.y+dy; nh=Math.max(10,b.h-dy); }
+  if(snapToGrid){ nx=snapV(nx); ny=snapV(ny); nw=snapV(nw); nh=snapV(nh); }
+  const origX=parseFloat(resizeEl.getAttribute('x')||0), origY=parseFloat(resizeEl.getAttribute('y')||0);
+  resizeEl.setAttribute('x',origX+(nx-b.x)); resizeEl.setAttribute('y',origY+(ny-b.y));
+  resizeEl.setAttribute('width',nw); resizeEl.setAttribute('height',nh);
+  updateHandlesPosition(); updateConnectorLines();
+}
+function onResizeEnd(){
+  document.removeEventListener('mousemove',onResizeMove);
+  document.removeEventListener('mouseup',onResizeEnd);
+  if(!resizing) return; resizing=false;
+  if(resizeEl) pushHistory({type:'resize',elements:[resizeEl.dataset.uid],before:[resizeBeforeSnap],after:[snapshotPos(resizeEl)]});
 }
 
 // ═══════════════════════════════════════════════════
 //  DRAG HANDLERS
 // ═══════════════════════════════════════════════════
+let dragEl=null, dragMulti=[], dragStartX=0, dragStartY=0, dragMoved=false;
+
 function onDragStart(e){
-  if(!editMode) return;
-  if(e.button!==0) return;
-  e.preventDefault();
-  e.stopPropagation();
+  if(!editMode) return; if(e.button!==0) return;
+  if(e.target.classList&&e.target.classList.contains('sel-handle')) return;
+  e.preventDefault(); e.stopPropagation();
   const el=e.currentTarget;
-
-  // Ctrl+click → toggle multi-select, no drag
-  if(e.ctrlKey||e.metaKey){
-    toggleMultiSelect(el);
-    return;
-  }
-
-  dragEl=el;
-  dragStartX=e.clientX;
-  dragStartY=e.clientY;
-  dragMoved=false;
-
-  // Build drag group: if el is already in multiSelection, drag all; else drag only el
+  if(el.dataset.locked==='1') return;
+  if(connectorMode){ handleConnectorClick(el); return; }
+  if(e.ctrlKey||e.metaKey){ toggleMultiSelect(el); return; }
+  dragEl=el; dragStartX=e.clientX; dragStartY=e.clientY; dragMoved=false;
   let elsToDrag=multiSelection.length>0&&multiSelection.includes(el)?multiSelection:[el];
-
-  dragMulti=elsToDrag.map(e2=>{
-    const pos=getElPosXY(e2);
-    return {el:e2, beforeSnap:snapshotPos(e2), origX:pos.x, origY:pos.y};
-  });
-
+  dragMulti=elsToDrag.map(e2=>{ const pos=getElPosXY(e2); return {el:e2,beforeSnap:snapshotPos(e2),origX:pos.x,origY:pos.y}; });
   dragEl.classList.add('dragging');
   document.addEventListener('mousemove',onDragMove);
   document.addEventListener('mouseup',onDragEnd);
 }
-
 function onDragMove(e){
   if(!dragEl) return;
   const svg=document.getElementById('main-svg');
-  const {dx,dy}=screenToSVGDelta(svg,e.clientX-dragStartX,e.clientY-dragStartY);
-  const dist=Math.hypot(e.clientX-dragStartX,e.clientY-dragStartY);
-  if(dist>3) dragMoved=true;
+  let {dx,dy}=screenToSVGDelta(svg,e.clientX-dragStartX,e.clientY-dragStartY);
+  if(Math.hypot(e.clientX-dragStartX,e.clientY-dragStartY)>3) dragMoved=true;
   if(!dragMoved) return;
-
-  // Move all dragged elements tentatively
-  dragMulti.forEach(d=>{
-    setElPosXY(d.el, d.origX+dx, d.origY+dy);
-  });
-
-  // Compute proposed boxes after tentative move
-  const proposedBoxes=dragMulti.map(d=>getElBox(d.el)).filter(Boolean);
-  const {snapDx,snapDy}=applySnapAndGuides(dragMulti.map(d=>d.el), proposedBoxes);
-
-  // Apply snap correction
-  if(snapDx||snapDy){
-    dragMulti.forEach(d=>{
-      setElPosXY(d.el, d.origX+dx+snapDx, d.origY+dy+snapDy);
-    });
+  hideHandles();
+  dragMulti.forEach(d=>setElPosXY(d.el,d.origX+dx,d.origY+dy));
+  if(snapToGrid){
+    const f=dragMulti[0]; const sx=snapV(f.origX+dx)-f.origX; const sy=snapV(f.origY+dy)-f.origY;
+    dragMulti.forEach(d=>setElPosXY(d.el,d.origX+sx,d.origY+sy)); clearGuides();
+  } else {
+    const proposedBoxes=dragMulti.map(d=>getElBox(d.el)).filter(Boolean);
+    const {snapDx,snapDy}=applySnapAndGuides(dragMulti.map(d=>d.el),proposedBoxes);
+    if(snapDx||snapDy) dragMulti.forEach(d=>setElPosXY(d.el,d.origX+dx+snapDx,d.origY+dy+snapDy));
   }
+  updateConnectorLines();
 }
-
 function onDragEnd(e){
   document.removeEventListener('mousemove',onDragMove);
   document.removeEventListener('mouseup',onDragEnd);
-  clearGuides();
-  if(!dragEl) return;
+  clearGuides(); if(!dragEl) return;
   dragEl.classList.remove('dragging');
-
   if(dragMoved){
-    // Record history
     const afterSnaps=dragMulti.map(d=>snapshotPos(d.el));
-    if(dragMulti.length===1){
-      pushHistory({type:'move', elements:[dragMulti[0].el.dataset.uid], before:[dragMulti[0].beforeSnap], after:[afterSnaps[0]]});
-    } else {
-      pushHistory({type:'multi-move', uids:dragMulti.map(d=>d.el.dataset.uid), before:dragMulti.map(d=>d.beforeSnap), after:afterSnaps});
-    }
-    // Select dragged element(s)
-    deselectAll();
-    selectedEl=dragEl;
-    selectedEl.classList.add('selected');
+    if(dragMulti.length===1) pushHistory({type:'move',elements:[dragMulti[0].el.dataset.uid],before:[dragMulti[0].beforeSnap],after:[afterSnaps[0]]});
+    else pushHistory({type:'multi-move',uids:dragMulti.map(d=>d.el.dataset.uid),before:dragMulti.map(d=>d.beforeSnap),after:afterSnaps});
+    deselectAll(); selectedEl=dragEl; selectedEl.classList.add('selected');
     document.getElementById('btn-delete').disabled=false;
-    showToast('↖↗ 已移动，单击编辑属性');
+    document.getElementById('btn-copy').disabled=false;
+    document.getElementById('btn-dup').disabled=false;
+    showHandles(selectedEl); updateLockBtn(); updateZOrderBtns(true); updateGroupBtns();
+    updatePropBar(selectedEl);
+    if(selectedEl.dataset.editable==='connector'){
+      const conn=connections.find(c=>c.uid===selectedEl.dataset.uid);
+      if(conn) showConnEpHandles(conn);
+    }
   } else {
-    // Click logic
     const el=dragEl;
-    if(selectedEl===el){closePopup();deselectAll();}
-    else{
-      deselectAll();
-      selectedEl=el;
-      selectedEl.classList.add('selected');
+    if(selectedEl===el){
+      closePopup(); deselectAll(); hideHandles(); hideConnEpHandles(); updateLockBtn(); updateZOrderBtns(false); updateGroupBtns();
+      updatePropBar(null);
+    } else {
+      deselectAll(); hideHandles(); hideConnEpHandles();
+      selectedEl=el; selectedEl.classList.add('selected');
       document.getElementById('btn-delete').disabled=false;
+      document.getElementById('btn-copy').disabled=false;
+      document.getElementById('btn-dup').disabled=false;
+      showHandles(selectedEl); updateLockBtn(); updateZOrderBtns(true); updateGroupBtns();
+      updatePropBar(selectedEl);
+      if(selectedEl.dataset.editable==='connector'){
+        const conn=connections.find(c=>c.uid===selectedEl.dataset.uid);
+        if(conn) showConnEpHandles(conn);
+      }
       openPopup(selectedEl,e.clientX,e.clientY);
     }
   }
-  dragMulti=[];
-  dragEl=null;
+  dragMulti=[]; dragEl=null;
+  refreshLayersPanel();
 }
 
 // ═══════════════════════════════════════════════════
 //  RUBBER-BAND SELECTION
 // ═══════════════════════════════════════════════════
-let rbActive=false;
-let rbStartX=0,rbStartY=0;
+let rbActive=false, rbStartX=0, rbStartY=0;
 const rbEl=document.getElementById('rubber-band');
-
 document.getElementById('svg-container').addEventListener('mousedown',function(e){
-  if(!editMode) return;
-  if(e.target.closest('[data-editable]')) return; // let drag handle it
+  if(!editMode) return; if(e.target.closest('[data-editable]')) return;
+  if(e.target.classList&&(e.target.classList.contains('sel-handle'))) return;
   if(e.button!==0) return;
-  rbActive=true;
-  const rect=this.getBoundingClientRect();
-  rbStartX=e.clientX-rect.left;
-  rbStartY=e.clientY-rect.top;
-  rbEl.style.left=rbStartX+'px'; rbEl.style.top=rbStartY+'px';
-  rbEl.style.width='0px'; rbEl.style.height='0px';
-  rbEl.style.display='block';
+  rbActive=true; const rect=this.getBoundingClientRect();
+  rbStartX=e.clientX-rect.left; rbStartY=e.clientY-rect.top;
+  rbEl.style.left=rbStartX+'px'; rbEl.style.top=rbStartY+'px'; rbEl.style.width='0'; rbEl.style.height='0'; rbEl.style.display='block';
   e.preventDefault();
 });
-
 document.addEventListener('mousemove',function(e){
   if(!rbActive) return;
   const rect=document.getElementById('svg-container').getBoundingClientRect();
-  const cx=e.clientX-rect.left;
-  const cy=e.clientY-rect.top;
-  const x=Math.min(cx,rbStartX), y=Math.min(cy,rbStartY);
-  const w=Math.abs(cx-rbStartX), h=Math.abs(cy-rbStartY);
-  rbEl.style.left=x+'px'; rbEl.style.top=y+'px';
-  rbEl.style.width=w+'px'; rbEl.style.height=h+'px';
+  const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
+  rbEl.style.left=Math.min(cx,rbStartX)+'px'; rbEl.style.top=Math.min(cy,rbStartY)+'px';
+  rbEl.style.width=Math.abs(cx-rbStartX)+'px'; rbEl.style.height=Math.abs(cy-rbStartY)+'px';
 });
-
 document.addEventListener('mouseup',function(e){
-  if(!rbActive) return;
-  rbActive=false;
-  rbEl.style.display='none';
-  // Find elements within rubber band
+  if(!rbActive) return; rbActive=false; rbEl.style.display='none';
   const rect=document.getElementById('svg-container').getBoundingClientRect();
-  const cx=e.clientX-rect.left;
-  const cy=e.clientY-rect.top;
-  const rx1=Math.min(cx,rbStartX), ry1=Math.min(cy,rbStartY);
-  const rx2=Math.max(cx,rbStartX), ry2=Math.max(cy,rbStartY);
-  if(rx2-rx1<4||ry2-ry1<4) return; // too small, ignore
-
+  const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
+  const rx1=Math.min(cx,rbStartX), ry1=Math.min(cy,rbStartY), rx2=Math.max(cx,rbStartX), ry2=Math.max(cy,rbStartY);
+  if(rx2-rx1<4||ry2-ry1<4) return;
   const svg=document.getElementById('main-svg');
-  const svgRect=svg.getBoundingClientRect();
-  const vb=svg.viewBox.baseVal;
-  const scaleX=svgRect.width/vb.width;
-  const scaleY=svgRect.height/vb.height;
-
-  // Convert rubber band to SVG coords
-  const svgX1=(rx1-(svgRect.left-rect.left))/scaleX+vb.x;
-  const svgY1=(ry1-(svgRect.top-rect.top))/scaleY+vb.y;
-  const svgX2=(rx2-(svgRect.left-rect.left))/scaleX+vb.x;
-  const svgY2=(ry2-(svgRect.top-rect.top))/scaleY+vb.y;
-
-  deselectAll();
-  multiSelection=[];
+  const svgRect=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
+  const scaleX=svgRect.width/vb.width, scaleY=svgRect.height/vb.height;
+  const svgX1=(rx1-(svgRect.left-rect.left))/scaleX+vb.x, svgY1=(ry1-(svgRect.top-rect.top))/scaleY+vb.y;
+  const svgX2=(rx2-(svgRect.left-rect.left))/scaleX+vb.x, svgY2=(ry2-(svgRect.top-rect.top))/scaleY+vb.y;
+  deselectAll(); hideHandles(); multiSelection=[];
   svg.querySelectorAll('[data-editable]').forEach(el=>{
-    const b=getElBox(el);
-    if(!b) return;
-    // element must overlap rubber band
-    if(b.r>svgX1&&b.x<svgX2&&b.bot>svgY1&&b.y<svgY2){
-      el.classList.add('multi-selected');
-      multiSelection.push(el);
-    }
+    const b=getElBox(el); if(!b) return;
+    if(b.r>svgX1&&b.x<svgX2&&b.bot>svgY1&&b.y<svgY2){ el.classList.add('multi-selected'); multiSelection.push(el); }
   });
-  if(multiSelection.length>0){
-    updateAlignBtns(true);
-    showToast(`🔲 已框选 ${multiSelection.length} 个元素`);
-  }
+  if(multiSelection.length>0){ updateAlignBtns(true); showToast(`Selected ${multiSelection.length} elements`); }
 });
 
 // ═══════════════════════════════════════════════════
@@ -1013,105 +1736,476 @@ document.addEventListener('mouseup',function(e){
 // ═══════════════════════════════════════════════════
 function toggleMultiSelect(el){
   const idx=multiSelection.indexOf(el);
-  if(idx>=0){
-    multiSelection.splice(idx,1);
-    el.classList.remove('multi-selected');
-  } else {
-    multiSelection.push(el);
-    el.classList.add('multi-selected');
-  }
-  // also deselect single selected
-  if(selectedEl){selectedEl.classList.remove('selected');selectedEl=null;document.getElementById('btn-delete').disabled=true;}
+  if(idx>=0){ multiSelection.splice(idx,1); el.classList.remove('multi-selected'); }
+  else { multiSelection.push(el); el.classList.add('multi-selected'); }
+  if(selectedEl){ selectedEl.classList.remove('selected'); selectedEl=null; hideHandles(); document.getElementById('btn-delete').disabled=true; }
   updateAlignBtns(multiSelection.length>1);
-  if(multiSelection.length>0) showToast(`已选 ${multiSelection.length} 个元素 — 可对齐/均匀分布`);
+  if(multiSelection.length>0) showToast(`${multiSelection.length} selected`);
+}
+function updateAlignBtns(enabled){
+  ['btn-align-left','btn-align-cx','btn-align-right','btn-align-top','btn-align-cy','btn-align-bottom','btn-dist-h','btn-dist-v']
+    .forEach(id=>document.getElementById(id).disabled=!enabled);
+}
+function updateGroupBtns(){
+  const canGroup=multiSelection.length>1;
+  const canUngroup=selectedEl&&selectedEl.dataset.groupId;
+  document.getElementById('btn-group').disabled=!canGroup;
+  document.getElementById('btn-ungroup').disabled=!canUngroup;
 }
 
-function updateAlignBtns(enabled){
-  ['btn-align-left','btn-align-cx','btn-align-right','btn-align-top','btn-align-cy','btn-align-bottom','btn-dist-h','btn-dist-v'].forEach(id=>{
-    document.getElementById(id).disabled=!enabled;
+// ═══════════════════════════════════════════════════
+//  Z-ORDER
+// ═══════════════════════════════════════════════════
+function zOrder(mode){
+  const el=selectedEl; if(!el) return;
+  const svg=document.getElementById('main-svg');
+  // Snapshot sibling position before move
+  const beforeNext=el.nextElementSibling;
+  const beforeNextUid=beforeNext?beforeNext.dataset.uid:null;
+  switch(mode){
+    case 'top': svg.appendChild(el); break;
+    case 'bottom': svg.insertBefore(el,svg.querySelector('[data-editable]')); break;
+    case 'fwd': { const next=el.nextElementSibling; if(next) svg.insertBefore(next,el); break; }
+    case 'bwd': { const prev=el.previousElementSibling; if(prev) svg.insertBefore(el,prev); break; }
+  }
+  // Snapshot sibling position after move
+  const afterNext=el.nextElementSibling;
+  const afterNextUid=afterNext?afterNext.dataset.uid:null;
+  pushHistory({type:'z-order',uid:el.dataset.uid,beforeNextSiblingUid:beforeNextUid,afterNextSiblingUid:afterNextUid});
+  showToast({'top':'Brought to front','bottom':'Sent to back','fwd':'Forward one','bwd':'Back one'}[mode]);
+  updateHandlesPosition(); refreshLayersPanel();
+}
+function updateZOrderBtns(enabled){
+  ['btn-bring-top','btn-bring-fwd','btn-send-bwd','btn-send-bottom'].forEach(id=>document.getElementById(id).disabled=!enabled);
+}
+
+// ═══════════════════════════════════════════════════
+//  LOCK / UNLOCK
+// ═══════════════════════════════════════════════════
+function toggleLock(){
+  if(!selectedEl) return;
+  const locked=selectedEl.dataset.locked==='1';
+  pushHistory({type:'lock',uid:selectedEl.dataset.uid,before:locked,after:!locked});
+  if(locked){ selectedEl.removeAttribute('data-locked'); delete selectedEl.dataset.locked; showToast('Unlocked'); }
+  else { selectedEl.dataset.locked='1'; showToast('Locked'); }
+  updateLockBtn();
+}
+function updateLockBtn(){
+  const btn=document.getElementById('btn-lock');
+  if(!selectedEl||!editMode){ btn.disabled=true; btn.textContent='🔒 锁定'; btn.classList.remove('active'); return; }
+  btn.disabled=false;
+  if(selectedEl.dataset.locked==='1'){ btn.textContent='🔓 解锁'; btn.classList.add('active'); }
+  else { btn.textContent='🔒 锁定'; btn.classList.remove('active'); }
+}
+
+// ═══════════════════════════════════════════════════
+//  COPY / PASTE / DUPLICATE
+// ═══════════════════════════════════════════════════
+function copySelected(){
+  if(!selectedEl) return;
+  clipboard={outerHTML:selectedEl.outerHTML};
+  document.getElementById('btn-paste').disabled=false;
+  showToast('Copied — Ctrl+V to paste');
+}
+function pasteClipboard(){
+  if(!clipboard) return;
+  const svg=document.getElementById('main-svg');
+  const doc=new DOMParser().parseFromString(clipboard.outerHTML,'image/svg+xml');
+  const node=svg.ownerDocument.adoptNode(doc.documentElement);
+  const tag=node.tagName.toLowerCase();
+  if(tag==='g'){ const [tx,ty]=getTranslateTuple(node); node.setAttribute('transform',`translate(${tx+20},${ty+20})`); }
+  else if(tag==='circle'||tag==='ellipse'){ node.setAttribute('cx',parseFloat(node.getAttribute('cx')||0)+20); node.setAttribute('cy',parseFloat(node.getAttribute('cy')||0)+20); }
+  else { node.setAttribute('x',parseFloat(node.getAttribute('x')||0)+20); node.setAttribute('y',parseFloat(node.getAttribute('y')||0)+20); }
+  delete node.dataset.uid;
+  svg.appendChild(node); ensureUID(node); attachOneDragListener(node);
+  pushHistory({type:'add',uid:node.dataset.uid,outerHTML:node.outerHTML});
+  showToast('Pasted (+20 offset)');
+}
+function duplicateSelected(){
+  if(!selectedEl) return;
+  clipboard={outerHTML:selectedEl.outerHTML};
+  pasteClipboard(); showToast('Duplicated');
+}
+
+// ═══════════════════════════════════════════════════
+//  CONNECTOR LINES (in main-svg as first-class elements)
+// ═══════════════════════════════════════════════════
+function toggleConnectorMode(){
+  connectorMode=!connectorMode; connSrc=null;
+  const btn=document.getElementById('btn-connector');
+  if(connectorMode){ btn.classList.add('active'); btn.textContent='🔗 点击源…'; document.getElementById('edit-hint').textContent='连接线：点击源元素 → 点击目标元素 (Esc退出)'; }
+  else { btn.classList.remove('active'); btn.textContent='🔗 连接线'; document.getElementById('edit-hint').textContent='拖拽移动 · 单击选中 · Ctrl+单击多选 · 拖拽框选'; }
+}
+function handleConnectorClick(el){
+  // skip if already a connector
+  if(el.dataset.editable==='connector'){ toggleConnectorMode(); return; }
+  if(!connSrc){ connSrc=el.dataset.uid; el.classList.add('selected'); document.getElementById('btn-connector').textContent='🔗 点击目标…'; showToast('Source set'); }
+  else {
+    if(el.dataset.uid===connSrc){ connSrc=null; return; }
+    addConnectorLine(connSrc,el.dataset.uid); connSrc=null; toggleConnectorMode();
+  }
+}
+
+// Add connector as SVG line inside main-svg (first-class editable element)
+function addConnectorLine(srcUid,dstUid,fixedUid){
+  const svg=document.getElementById('main-svg');
+  const srcEl=svg.querySelector(`[data-uid="${srcUid}"]`);
+  const dstEl=svg.querySelector(`[data-uid="${dstUid}"]`);
+  if(!srcEl||!dstEl) return;
+  const sb=getElBox(srcEl); const db=getElBox(dstEl);
+  if(!sb||!db) return;
+  const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('data-editable','connector');
+  line.setAttribute('data-src-uid',srcUid);
+  line.setAttribute('data-dst-uid',dstUid);
+  line.setAttribute('x1',sb.cx); line.setAttribute('y1',sb.cy);
+  line.setAttribute('x2',db.cx); line.setAttribute('y2',db.cy);
+  line.setAttribute('stroke','rgba(0,200,255,.85)');
+  line.setAttribute('stroke-width','1.8');
+  line.setAttribute('fill','none');
+  line.setAttribute('marker-end','url(#arrowhead)');
+  const uid=fixedUid||'conn-'+(connIdCounter++);
+  line.dataset.uid=uid;
+  svg.appendChild(line);
+  connections.push({uid,srcUid,dstUid,el:line});
+  attachOneDragListener(line);
+  if(!fixedUid) pushHistory({type:'connector-add',connUid:uid,srcUid,dstUid,
+    stroke:'rgba(0,200,255,.85)',strokeWidth:'1.8',dasharray:''});
+  showToast('Connection created — can drag, click to edit');
+}
+
+function deleteSelectedConnector(){
+  const svg=document.getElementById('main-svg');
+  const sel=connections.find(c=>c.el.classList.contains('selected'));
+  if(sel){
+    pushHistory({type:'connector-delete',connUid:sel.uid,srcUid:sel.srcUid,dstUid:sel.dstUid,
+      stroke:sel.el.getAttribute('stroke')||'rgba(0,200,255,.85)',
+      strokeWidth:sel.el.getAttribute('stroke-width')||'1.8',
+      dasharray:sel.el.getAttribute('stroke-dasharray')||''});
+    sel.el.remove(); connections.splice(connections.indexOf(sel),1);
+    hideConnEpHandles();
+    showToast('Connector deleted — Ctrl+Z to undo'); return true;
+  }
+  return false;
+}
+
+function updateConnectorLines(){
+  const svg=document.getElementById('main-svg');
+  connections.forEach(({srcUid,dstUid,el})=>{
+    const srcEl=svg.querySelector(`[data-uid="${srcUid}"]`);
+    const dstEl=svg.querySelector(`[data-uid="${dstUid}"]`);
+    if(srcEl&&dstEl){
+      const sb=getElBox(srcEl); const db=getElBox(dstEl);
+      if(sb&&db){
+        el.setAttribute('x1',sb.cx); el.setAttribute('y1',sb.cy);
+        el.setAttribute('x2',db.cx); el.setAttribute('y2',db.cy);
+      }
+    }
   });
+}
+
+// ── Connector endpoint drag handles (shown in screen-space overlay) ──
+let epDragging=null, epDraggingConn=null;
+function showConnEpHandles(conn){
+  const svg=document.getElementById('main-svg');
+  const container=document.getElementById('svg-container');
+  const cRect=container.getBoundingClientRect();
+  const line=conn.el;
+  const vb=svg.viewBox.baseVal; const sr=svg.getBoundingClientRect();
+  const scX=sr.width/vb.width, scY=sr.height/vb.height;
+  const x1=parseFloat(line.getAttribute('x1')), y1=parseFloat(line.getAttribute('y1'));
+  const x2=parseFloat(line.getAttribute('x2')), y2=parseFloat(line.getAttribute('y2'));
+  function posEp(id,svgX,svgY){
+    const ep=document.getElementById(id);
+    ep.style.left=((svgX-vb.x)*scX+(sr.left-cRect.left))+'px';
+    ep.style.top= ((svgY-vb.y)*scY+(sr.top-cRect.top))+'px';
+    ep.style.display='block';
+  }
+  posEp('conn-ep-src',x1,y1); posEp('conn-ep-dst',x2,y2);
+  // attach drag
+  setupEpDrag('conn-ep-src','src',conn);
+  setupEpDrag('conn-ep-dst','dst',conn);
+}
+function hideConnEpHandles(){
+  ['conn-ep-src','conn-ep-dst'].forEach(id=>{
+    const ep=document.getElementById(id); ep.style.display='none';
+    const clone=ep.cloneNode(true); ep.parentNode.replaceChild(clone,ep);
+  });
+}
+function setupEpDrag(epId, which, conn){
+  const ep=document.getElementById(epId);
+  ep.onmousedown=function(e){
+    e.preventDefault(); e.stopPropagation();
+    epDragging=which; epDraggingConn=conn;
+    document.addEventListener('mousemove',onEpDragMove);
+    document.addEventListener('mouseup',onEpDragEnd);
+  };
+}
+function onEpDragMove(e){
+  if(!epDragging||!epDraggingConn) return;
+  const svg=document.getElementById('main-svg');
+  const sr=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
+  const svgX=(e.clientX-sr.left)*(vb.width/sr.width)+vb.x;
+  const svgY=(e.clientY-sr.top)*(vb.height/sr.height)+vb.y;
+  const line=epDraggingConn.el;
+  if(epDragging==='src'){ line.setAttribute('x1',svgX); line.setAttribute('y1',svgY); }
+  else { line.setAttribute('x2',svgX); line.setAttribute('y2',svgY); }
+  // update handle position
+  const container=document.getElementById('svg-container');
+  const cRect=container.getBoundingClientRect();
+  const epEl=document.getElementById(epDragging==='src'?'conn-ep-src':'conn-ep-dst');
+  epEl.style.left=(e.clientX-cRect.left)+'px'; epEl.style.top=(e.clientY-cRect.top)+'px';
+}
+function onEpDragEnd(e){
+  document.removeEventListener('mousemove',onEpDragMove);
+  document.removeEventListener('mouseup',onEpDragEnd);
+  if(!epDragging) return;
+  // snap to nearest element center
+  const svg=document.getElementById('main-svg');
+  const sr=svg.getBoundingClientRect(); const vb=svg.viewBox.baseVal;
+  const svgX=(e.clientX-sr.left)*(vb.width/sr.width)+vb.x;
+  const svgY=(e.clientY-sr.top)*(vb.height/sr.height)+vb.y;
+  let bestEl=null, bestDist=Infinity;
+  svg.querySelectorAll('[data-editable]:not([data-editable="connector"])').forEach(el=>{
+    const b=getElBox(el); if(!b) return;
+    const d=Math.hypot(b.cx-svgX,b.cy-svgY);
+    if(d<bestDist){ bestDist=d; bestEl=el; }
+  });
+  if(bestEl&&bestDist<60){
+    const b=getElBox(bestEl);
+    const line=epDraggingConn.el;
+    if(epDragging==='src'){
+      line.setAttribute('x1',b.cx); line.setAttribute('y1',b.cy);
+      epDraggingConn.srcUid=bestEl.dataset.uid;
+      line.dataset.srcUid=bestEl.dataset.uid;
+    } else {
+      line.setAttribute('x2',b.cx); line.setAttribute('y2',b.cy);
+      epDraggingConn.dstUid=bestEl.dataset.uid;
+      line.dataset.dstUid=bestEl.dataset.uid;
+    }
+    showConnEpHandles(epDraggingConn);
+  }
+  epDragging=null; epDraggingConn=null;
+}
+
+// ═══════════════════════════════════════════════════
+//  GRID
+// ═══════════════════════════════════════════════════
+function toggleGrid(){
+  gridVisible=!gridVisible;
+  document.getElementById('grid-overlay').classList.toggle('visible',gridVisible);
+  document.getElementById('btn-grid').classList.toggle('active',gridVisible);
+}
+function toggleSnapGrid(){
+  snapToGrid=!snapToGrid;
+  document.getElementById('btn-snap-grid').classList.toggle('active',snapToGrid);
+  showToast(snapToGrid?'Grid snap ON':'Grid snap OFF');
 }
 
 // ═══════════════════════════════════════════════════
 //  ALIGNMENT & DISTRIBUTION
 // ═══════════════════════════════════════════════════
-function getActiveAlignTargets(){
-  if(multiSelection.length>1) return multiSelection;
-  // Fall back to all editable if only 1 or none selected
-  return null;
-}
-
+function getActiveAlignTargets(){ return multiSelection.length>1?multiSelection:null; }
 function alignElements(mode){
-  const els=getActiveAlignTargets();
-  if(!els||els.length<2){showToast('⚠️ 请先框选或 Ctrl+单击选中 2 个以上元素');return;}
-
+  const els=getActiveAlignTargets(); if(!els||els.length<2){ showToast('Select 2+ elements first'); return; }
   const boxes=els.map(e=>({el:e,b:getElBox(e),pos:getElPosXY(e)}));
   const befores=els.map(e=>snapshotPos(e));
-
   boxes.forEach(({el,b,pos})=>{
-    if(!b) return;
-    let newX=pos.x, newY=pos.y;
-    if(mode==='left'){
-      const minX=Math.min(...boxes.map(d=>d.b?d.b.x:Infinity));
-      newX=pos.x+(minX-b.x);
-    } else if(mode==='right'){
-      const maxR=Math.max(...boxes.map(d=>d.b?d.b.r:-Infinity));
-      newX=pos.x+(maxR-b.r);
-    } else if(mode==='cx'){
-      const avgCx=boxes.reduce((s,d)=>s+(d.b?d.b.cx:0),0)/boxes.length;
-      newX=pos.x+(avgCx-b.cx);
-    } else if(mode==='top'){
-      const minY=Math.min(...boxes.map(d=>d.b?d.b.y:Infinity));
-      newY=pos.y+(minY-b.y);
-    } else if(mode==='bottom'){
-      const maxBot=Math.max(...boxes.map(d=>d.b?d.b.bot:-Infinity));
-      newY=pos.y+(maxBot-b.bot);
-    } else if(mode==='cy'){
-      const avgCy=boxes.reduce((s,d)=>s+(d.b?d.b.cy:0),0)/boxes.length;
-      newY=pos.y+(avgCy-b.cy);
-    }
-    setElPosXY(el,newX,newY);
+    if(!b) return; let nx=pos.x,ny=pos.y;
+    if(mode==='left'){ const m=Math.min(...boxes.map(d=>d.b?d.b.x:Infinity)); nx=pos.x+(m-b.x); }
+    else if(mode==='right'){ const m=Math.max(...boxes.map(d=>d.b?d.b.r:-Infinity)); nx=pos.x+(m-b.r); }
+    else if(mode==='cx'){ const m=boxes.reduce((s,d)=>s+(d.b?d.b.cx:0),0)/boxes.length; nx=pos.x+(m-b.cx); }
+    else if(mode==='top'){ const m=Math.min(...boxes.map(d=>d.b?d.b.y:Infinity)); ny=pos.y+(m-b.y); }
+    else if(mode==='bottom'){ const m=Math.max(...boxes.map(d=>d.b?d.b.bot:-Infinity)); ny=pos.y+(m-b.bot); }
+    else if(mode==='cy'){ const m=boxes.reduce((s,d)=>s+(d.b?d.b.cy:0),0)/boxes.length; ny=pos.y+(m-b.cy); }
+    setElPosXY(el,nx,ny);
   });
-
-  const afters=els.map(e=>snapshotPos(e));
-  pushHistory({type:'multi-move',uids:els.map(e=>e.dataset.uid),before:befores,after:afters});
-  showToast('✓ 对齐完成');
+  pushHistory({type:'multi-move',uids:els.map(e=>e.dataset.uid),before:befores,after:els.map(e=>snapshotPos(e))});
+  updateConnectorLines(); showToast('Aligned');
 }
-
 function distributeElements(dir){
-  const els=getActiveAlignTargets();
-  if(!els||els.length<3){showToast('⚠️ 均匀分布需要至少 3 个元素');return;}
-
+  const els=getActiveAlignTargets(); if(!els||els.length<3){ showToast('Need 3+ elements'); return; }
   const boxes=els.map(e=>({el:e,b:getElBox(e),pos:getElPosXY(e)})).filter(d=>d.b);
   const befores=els.map(e=>snapshotPos(e));
-
   if(dir==='h'){
     boxes.sort((a,b)=>a.b.x-b.b.x);
-    const totalSpan=boxes[boxes.length-1].b.r-boxes[0].b.x;
-    const totalW=boxes.reduce((s,d)=>s+d.b.w,0);
-    const gap=(totalSpan-totalW)/(boxes.length-1);
-    let cursor=boxes[0].b.x;
-    boxes.forEach(({el,b,pos})=>{
-      const newX=pos.x+(cursor-b.x);
-      setElPosXY(el,newX,pos.y);
-      cursor+=b.w+gap;
-    });
+    const gap=(boxes[boxes.length-1].b.r-boxes[0].b.x-boxes.reduce((s,d)=>s+d.b.w,0))/(boxes.length-1);
+    let c=boxes[0].b.x;
+    boxes.forEach(({el,b,pos})=>{ setElPosXY(el,pos.x+(c-b.x),pos.y); c+=b.w+gap; });
   } else {
     boxes.sort((a,b)=>a.b.y-b.b.y);
-    const totalSpan=boxes[boxes.length-1].b.bot-boxes[0].b.y;
-    const totalH=boxes.reduce((s,d)=>s+d.b.h,0);
-    const gap=(totalSpan-totalH)/(boxes.length-1);
-    let cursor=boxes[0].b.y;
-    boxes.forEach(({el,b,pos})=>{
-      const newY=pos.y+(cursor-b.y);
-      setElPosXY(el,pos.x,newY);
-      cursor+=b.h+gap;
-    });
+    const gap=(boxes[boxes.length-1].b.bot-boxes[0].b.y-boxes.reduce((s,d)=>s+d.b.h,0))/(boxes.length-1);
+    let c=boxes[0].b.y;
+    boxes.forEach(({el,b,pos})=>{ setElPosXY(el,pos.x,pos.y+(c-b.y)); c+=b.h+gap; });
   }
+  pushHistory({type:'multi-move',uids:els.map(e=>e.dataset.uid),before:befores,after:els.map(e=>snapshotPos(e))});
+  updateConnectorLines(); showToast('Distributed evenly');
+}
 
-  const afters=els.map(e=>snapshotPos(e));
-  pushHistory({type:'multi-move',uids:els.map(e=>e.dataset.uid),before:befores,after:afters});
-  showToast('✓ 均匀分布完成');
+// ═══════════════════════════════════════════════════
+//  RIGHT-CLICK CONTEXT MENU
+// ═══════════════════════════════════════════════════
+let ctxMenuTarget=null; // element right-clicked on (may be null = canvas)
+let ctxMenuClientX=0, ctxMenuClientY=0;
+
+document.getElementById('svg-container').addEventListener('contextmenu',function(e){
+  if(!editMode) return;
+  e.preventDefault(); e.stopPropagation();
+  ctxMenuClientX=e.clientX; ctxMenuClientY=e.clientY;
+  const hit=e.target.closest('[data-editable]');
+  ctxMenuTarget=hit||null;
+  // If clicking on an unselected element, select it
+  if(hit&&selectedEl!==hit&&!multiSelection.includes(hit)){
+    deselectAll(); hideHandles(); hideConnEpHandles(); multiSelection=[];
+    selectedEl=hit; hit.classList.add('selected');
+    document.getElementById('btn-delete').disabled=false;
+    document.getElementById('btn-copy').disabled=false;
+    document.getElementById('btn-dup').disabled=false;
+    showHandles(hit); updateLockBtn(); updateZOrderBtns(true);
+    updatePropBar(hit);
+  }
+  // Build overlap list for "此处的元素"
+  const overlapping=getElementsAtPoint(e.clientX, e.clientY);
+  const ctxSelectHere=document.getElementById('ctx-select-here');
+  ctxSelectHere.style.display=overlapping.length>1?'flex':'none';
+  // Show context menu
+  const menu=document.getElementById('ctx-menu');
+  const hasSelection=!!(selectedEl||multiSelection.length);
+  document.getElementById('ctx-copy').classList.toggle('disabled',!hasSelection);
+  document.getElementById('ctx-dup').classList.toggle('disabled',!hasSelection);
+  document.getElementById('ctx-delete').classList.toggle('disabled',!hasSelection);
+  document.getElementById('ctx-bring-top').classList.toggle('disabled',!selectedEl);
+  document.getElementById('ctx-bring-fwd').classList.toggle('disabled',!selectedEl);
+  document.getElementById('ctx-send-bwd').classList.toggle('disabled',!selectedEl);
+  document.getElementById('ctx-send-bottom').classList.toggle('disabled',!selectedEl);
+  document.getElementById('ctx-lock').classList.toggle('disabled',!selectedEl);
+  document.getElementById('ctx-group').classList.toggle('disabled',multiSelection.length<2);
+  document.getElementById('ctx-ungroup').classList.toggle('disabled',!(selectedEl&&selectedEl.dataset.groupId));
+  menu.classList.add('visible');
+  // Position
+  const vw=window.innerWidth, vh=window.innerHeight;
+  let mx=e.clientX+2, my=e.clientY+2;
+  menu.style.left=mx+'px'; menu.style.top=my+'px';
+  // Adjust if offscreen
+  requestAnimationFrame(()=>{
+    const mw=menu.offsetWidth, mh=menu.offsetHeight;
+    if(mx+mw>vw-8) mx=e.clientX-mw-2;
+    if(my+mh>vh-8) my=e.clientY-mh-2;
+    menu.style.left=Math.max(8,mx)+'px'; menu.style.top=Math.max(8,my)+'px';
+  });
+});
+document.addEventListener('mousedown',function(e){
+  if(!document.getElementById('ctx-menu').contains(e.target)) closeCtxMenu();
+  if(!document.getElementById('overlap-picker').contains(e.target)) closeOverlapPicker();
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){ closeCtxMenu(); closeOverlapPicker(); }
+},true);
+function closeCtxMenu(){
+  document.getElementById('ctx-menu').classList.remove('visible');
+}
+function ctxSelectAll(){
+  closeCtxMenu();
+  deselectAll(); multiSelection=[];
+  document.querySelectorAll('#main-svg [data-editable]').forEach(el=>{
+    el.classList.add('multi-selected'); multiSelection.push(el);
+  });
+  updateAlignBtns(multiSelection.length>1);
+  showToast(`全选 ${multiSelection.length} 个元素`);
+}
+function ctxSelectHere(){
+  closeCtxMenu();
+  const overlapping=getElementsAtPoint(ctxMenuClientX, ctxMenuClientY);
+  if(overlapping.length<=1){ if(overlapping[0]){ deselectAll(); selectedEl=overlapping[0]; overlapping[0].classList.add('selected'); showHandles(overlapping[0]); updatePropBar(overlapping[0]); } return; }
+  showOverlapPicker(overlapping, ctxMenuClientX, ctxMenuClientY);
+}
+
+// ── Get all elements at a screen point ──
+function getElementsAtPoint(clientX, clientY){
+  const svg=document.getElementById('main-svg');
+  // Use elementsFromPoint, filter to [data-editable]
+  const all=document.elementsFromPoint(clientX, clientY);
+  const result=[];
+  const seen=new Set();
+  all.forEach(el=>{
+    const editable=el.closest('#main-svg [data-editable]');
+    if(editable&&!seen.has(editable)){
+      seen.add(editable); result.push(editable);
+    }
+  });
+  return result;
+}
+
+// ── Overlap picker ──
+function showOverlapPicker(elements, clientX, clientY){
+  const picker=document.getElementById('overlap-picker');
+  const listEl=document.getElementById('overlap-list');
+  listEl.innerHTML='';
+  elements.forEach((el,i)=>{
+    const item=document.createElement('div');
+    item.className='overlap-item';
+    if(el===selectedEl) item.classList.add('current');
+    const thumb=document.createElement('div'); thumb.className='overlap-thumb'; thumb.textContent=getElementIcon(el);
+    const lbl=document.createElement('span'); lbl.textContent=getElementLabel(el,i); lbl.style.cssText='flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    item.appendChild(thumb); item.appendChild(lbl);
+    item.onclick=function(){
+      closeOverlapPicker();
+      deselectAll(); hideHandles(); hideConnEpHandles();
+      selectedEl=el; el.classList.add('selected');
+      document.getElementById('btn-delete').disabled=false;
+      document.getElementById('btn-copy').disabled=false;
+      document.getElementById('btn-dup').disabled=false;
+      showHandles(el); updateLockBtn(); updateZOrderBtns(true); updatePropBar(el);
+      if(el.dataset.editable==='connector'){
+        const conn=connections.find(c=>c.uid===el.dataset.uid);
+        if(conn) showConnEpHandles(conn);
+      }
+      openPopup(el, clientX, clientY);
+      refreshLayersPanel();
+    };
+    listEl.appendChild(item);
+  });
+  picker.classList.add('visible');
+  const vw=window.innerWidth, vh=window.innerHeight;
+  let px=clientX+4, py=clientY+4;
+  picker.style.left=px+'px'; picker.style.top=py+'px';
+  requestAnimationFrame(()=>{
+    const pw=picker.offsetWidth, ph=picker.offsetHeight;
+    if(px+pw>vw-8) px=clientX-pw-4;
+    if(py+ph>vh-8) py=clientY-ph-4;
+    picker.style.left=Math.max(8,px)+'px'; picker.style.top=Math.max(8,py)+'px';
+  });
+}
+function closeOverlapPicker(){ document.getElementById('overlap-picker').classList.remove('visible'); }
+
+// ═══════════════════════════════════════════════════
+//  TAB CYCLE SELECTION (draw.io style)
+// ═══════════════════════════════════════════════════
+let tabCycleEls=[]; let tabCycleIdx=-1;
+function startTabCycle(clientX, clientY){
+  // Get elements at last click point (or use all if no point)
+  const all=Array.from(document.querySelectorAll('#main-svg [data-editable]'));
+  if(!all.length) return;
+  if(!selectedEl){ tabCycleEls=all; tabCycleIdx=0; }
+  else {
+    const cur=all.indexOf(selectedEl);
+    tabCycleIdx=(cur+1)%all.length;
+    tabCycleEls=all;
+  }
+  const el=tabCycleEls[tabCycleIdx];
+  deselectAll(); hideHandles(); hideConnEpHandles();
+  selectedEl=el; el.classList.add('selected');
+  document.getElementById('btn-delete').disabled=false;
+  document.getElementById('btn-copy').disabled=false;
+  document.getElementById('btn-dup').disabled=false;
+  showHandles(el); updateLockBtn(); updateZOrderBtns(true); updatePropBar(el);
+  // Show Tab hint
+  const hint=document.getElementById('tab-cycle-hint');
+  hint.textContent=`${tabCycleIdx+1}/${tabCycleEls.length} — ${getElementLabel(el,tabCycleIdx)}`;
+  hint.classList.add('show');
+  clearTimeout(hint._timer);
+  hint._timer=setTimeout(()=>hint.classList.remove('show'),1800);
+  refreshLayersPanel();
 }
 
 // ═══════════════════════════════════════════════════
@@ -1122,92 +2216,136 @@ function toggleEditMode(){
   const btn=document.getElementById('btn-edit-mode');
   const wrap=document.getElementById('svg-container');
   const hint=document.getElementById('edit-hint');
+  const editBtns=['btn-add-text','btn-add-rect','btn-add-circle','btn-add-arrow','btn-add-icon','btn-connector','btn-copy','btn-dup',
+                  'btn-bring-top','btn-bring-fwd','btn-send-bwd','btn-send-bottom','btn-lock'];
   if(editMode){
-    btn.textContent='✏️ 关闭编辑';btn.classList.add('active');
+    btn.textContent='✏️ 关闭编辑'; btn.classList.add('active');
     wrap.classList.add('edit-mode');
-    document.getElementById('btn-add-text').disabled=false;
-    document.getElementById('btn-add-rect').disabled=false;
-    hint.textContent='拖拽移动 · 单击选中 · Ctrl+单击多选 · Shift框选 | 框选后可对齐/均布';
+    editBtns.forEach(id=>document.getElementById(id).disabled=false);
+    hint.textContent='拖拽移动 · 单击选中 · Ctrl+单击多选 · 拖拽框选 · 右键=菜单 · Tab=切换选择 | Ctrl+G=组合 Ctrl+Shift+G=解组 | 滚轮=缩放 空格拖拽=平移';
+    // Auto-detect all elements
+    initAllUIDs();
     attachEditListeners();
+    document.getElementById('btn-layers').classList.add('visible');
+    refreshLayersPanel();
   } else {
-    btn.textContent='✏️ 开启编辑';btn.classList.add=btn.classList.remove.bind(btn.classList);
-    btn.classList.remove('active');
+    btn.textContent='✏️ 开启编辑'; btn.classList.remove('active');
     wrap.classList.remove('edit-mode');
-    document.getElementById('btn-add-text').disabled=true;
-    document.getElementById('btn-add-rect').disabled=true;
-    document.getElementById('btn-delete').disabled=true;
+    editBtns.forEach(id=>document.getElementById(id).disabled=true);
+    ['btn-delete','btn-paste'].forEach(id=>document.getElementById(id).disabled=true);
     hint.textContent='点击「开启编辑」，然后点击 SVG 中任意元素即可编辑';
-    closePopup();deselectAll();
-    clearGuides();
-    document.removeEventListener('mousemove',onDragMove);
-    document.removeEventListener('mouseup',onDragEnd);
+    closePopup(); deselectAll(); hideHandles(); clearGuides(); hideConnEpHandles();
+    if(connectorMode) toggleConnectorMode();
+    if(iconPanelOpen) toggleIconPanel();
+    updateLockBtn(); updateZOrderBtns(false);
+    document.getElementById('btn-layers').classList.remove('visible');
+    document.getElementById('prop-bar').classList.remove('visible');
+    if(layersPanelOpen) toggleLayersPanel();
   }
 }
-
 function attachEditListeners(){
-  const svg=document.getElementById('main-svg');
-  svg.querySelectorAll('[data-editable]').forEach(attachOneDragListener);
+  document.getElementById('main-svg').querySelectorAll('[data-editable]').forEach(attachOneDragListener);
 }
-
 function attachOneDragListener(el){
-  if(!el) return;
-  ensureUID(el);
-  el.removeEventListener('mousedown',onDragStart);
-  el.addEventListener('mousedown',onDragStart);
+  if(!el) return; ensureUID(el);
+  el.removeEventListener('mousedown',onDragStart); el.addEventListener('mousedown',onDragStart);
 }
 
+// Click outside deselect
 document.addEventListener('click',function(e){
-  if(!editMode) return;
-  if(dragMoved) return;
+  if(!editMode||dragMoved) return;
   const pop=document.getElementById('edit-popup');
-  if(!pop.contains(e.target)&&!e.target.closest('[data-editable]')){
-    closePopup();deselectAll();
-    multiSelection.forEach(el=>el.classList.remove('multi-selected'));
-    multiSelection=[];
-    updateAlignBtns(false);
+  const iconPanel=document.getElementById('icon-panel');
+  if(!pop.contains(e.target)&&!iconPanel.contains(e.target)&&!e.target.closest('[data-editable]')&&
+     !e.target.classList.contains('sel-handle')&&!e.target.classList.contains('conn-ep')){
+    closePopup(); deselectAll(); hideHandles(); hideConnEpHandles();
+    multiSelection.forEach(el=>el.classList.remove('multi-selected')); multiSelection=[];
+    updateAlignBtns(false); updateZOrderBtns(false); updateLockBtn();
+    connections.forEach(c=>c.el.classList.remove('selected'));
   }
 });
 
-// Keyboard shortcuts
+// ═══════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════
 document.addEventListener('keydown',function(e){
-  if(!editMode) return;
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
-  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
-  else if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo();}
-  else if(e.key==='Delete'||e.key==='Backspace'){
-    if(selectedEl){e.preventDefault();deleteSelected();}
+  if(e.key==='g'&&!e.ctrlKey&&!e.metaKey){ toggleGrid(); return; }
+  if(e.key==='F7'){ e.preventDefault(); if(editMode) toggleLayersPanel(); return; }
+  if(!editMode) return;
+  if(e.key==='Tab'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){ e.preventDefault(); startTabCycle(); return; }
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){ e.preventDefault(); undo(); }
+  else if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){ e.preventDefault(); redo(); }
+  else if((e.ctrlKey||e.metaKey)&&e.key==='c'){ e.preventDefault(); copySelected(); }
+  else if((e.ctrlKey||e.metaKey)&&e.key==='v'){ e.preventDefault(); pasteClipboard(); }
+  else if((e.ctrlKey||e.metaKey)&&e.key==='d'){ e.preventDefault(); duplicateSelected(); }
+  else if((e.ctrlKey||e.metaKey)&&e.key==='a'){
+    e.preventDefault(); deselectAll(); multiSelection=[];
+    document.querySelectorAll('#main-svg [data-editable]').forEach(el=>{ el.classList.add('multi-selected'); multiSelection.push(el); });
+    updateAlignBtns(multiSelection.length>1); showToast(`All ${multiSelection.length} selected`);
   }
-  else if(e.key==='Escape'){closePopup();deselectAll();multiSelection.forEach(el=>el.classList.remove('multi-selected'));multiSelection=[];updateAlignBtns(false);}
-  // Arrow nudge (1 SVG unit)
+  else if(e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); if(selectedEl) deleteSelected(); }
+  else if(e.key==='Escape'){
+    closePopup(); deselectAll(); hideHandles(); hideConnEpHandles();
+    multiSelection.forEach(el=>el.classList.remove('multi-selected')); multiSelection=[];
+    updateAlignBtns(false); updateZOrderBtns(false); updateLockBtn();
+    if(connectorMode) toggleConnectorMode();
+    if(iconPanelOpen) toggleIconPanel();
+    closeCtxMenu(); closeOverlapPicker();
+    document.getElementById('prop-bar').classList.remove('visible');
+  }
   else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&selectedEl){
     e.preventDefault();
-    const step=e.shiftKey?10:1;
-    const pos=getElPosXY(selectedEl);
-    const before=snapshotPos(selectedEl);
+    const step=e.shiftKey?10:1; const pos=getElPosXY(selectedEl); const before=snapshotPos(selectedEl);
     if(e.key==='ArrowLeft') setElPosXY(selectedEl,pos.x-step,pos.y);
     else if(e.key==='ArrowRight') setElPosXY(selectedEl,pos.x+step,pos.y);
     else if(e.key==='ArrowUp') setElPosXY(selectedEl,pos.x,pos.y-step);
     else setElPosXY(selectedEl,pos.x,pos.y+step);
     pushHistory({type:'move',elements:[selectedEl.dataset.uid],before:[before],after:[snapshotPos(selectedEl)]});
+    updateHandlesPosition(); updateConnectorLines(); updatePropBar(selectedEl);
   }
+  else if(e.key===']'&&selectedEl){ e.preventDefault(); zOrder(e.ctrlKey?'top':'fwd'); }
+  else if(e.key==='['&&selectedEl){ e.preventDefault(); zOrder(e.ctrlKey?'bottom':'bwd'); }
+  else if(e.key==='l'&&selectedEl){ e.preventDefault(); toggleLock(); }
+  // Group / Ungroup
+  else if((e.ctrlKey||e.metaKey)&&e.key==='g'&&!e.shiftKey){ e.preventDefault(); groupSelected(); }
+  else if((e.ctrlKey||e.metaKey)&&e.key==='g'&&e.shiftKey){ e.preventDefault(); ungroupSelected(); }
+  // Zoom shortcuts (also work outside edit mode)
+});
+// Zoom shortcuts work even when edit mode is off
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  if((e.ctrlKey||e.metaKey)&&(e.key==='-'||e.key==='_')){ e.preventDefault(); zoomStep(-1); }
+  else if((e.ctrlKey||e.metaKey)&&(e.key==='='||e.key==='+')){ e.preventDefault(); zoomStep(1); }
+  else if((e.ctrlKey||e.metaKey)&&e.key==='0'){ e.preventDefault(); zoomReset(); }
 });
 
 function deselectAll(){
   document.querySelectorAll('[data-editable].selected').forEach(el=>el.classList.remove('selected'));
   selectedEl=null;
   document.getElementById('btn-delete').disabled=true;
+  document.getElementById('btn-copy').disabled=true;
+  document.getElementById('btn-dup').disabled=true;
+  hideConnEpHandles();
 }
 
 // ═══════════════════════════════════════════════════
 //  POPUP
 // ═══════════════════════════════════════════════════
 function openPopup(el,cx,cy){
+  if(el.dataset.locked==='1'){ showToast('Locked — press L to unlock'); return; }
   const pop=document.getElementById('edit-popup');
   const type=el.dataset.editable;
-  document.getElementById('popup-title').textContent=type==='text'?'✏️ 编辑文字':'🎨 编辑方块';
+  const tagName=el.tagName.toLowerCase();
+  // Title
+  const titleMap={text:'编辑文字',connector:'编辑连接线','connector-free':'编辑线段',icon:'编辑图标',rect:'编辑形状',shape:'编辑形状',image:'编辑图片'};
+  document.getElementById('popup-title').textContent=titleMap[type]||`编辑 ${tagName}`;
+  // Show/hide field groups
+  const isRect=type==='rect'||type==='shape'||type==='connector-free';
   document.getElementById('popup-text-fields').style.display=type==='text'?'block':'none';
-  document.getElementById('popup-rect-fields').style.display=type==='rect'?'block':'none';
-
+  document.getElementById('popup-rect-fields').style.display=isRect?'block':'none';
+  document.getElementById('popup-connector-fields').style.display=type==='connector'?'block':'none';
+  document.getElementById('popup-icon-fields').style.display=type==='icon'?'block':'none';
   if(type==='text'){
     const txt=el.textContent.trim();
     document.getElementById('popup-text-input').value=txt;
@@ -1216,8 +2354,8 @@ function openPopup(el,cx,cy){
     const fs=parseInt(el.getAttribute('font-size'))||14;
     document.getElementById('popup-font-size').value=fs;
     document.getElementById('popup-font-size-val').textContent=fs;
-    origState={text:txt,fill:fill,fs:fs};
-  } else {
+    origState={text:txt,fill,fs};
+  } else if(isRect){
     const fill=el.getAttribute('fill')||'#0a2a4a';
     const stroke=el.getAttribute('stroke')||'#00aaff';
     const opacity=parseFloat(el.getAttribute('opacity')||1)*100;
@@ -1225,7 +2363,31 @@ function openPopup(el,cx,cy){
     document.getElementById('popup-rect-stroke').value=toHex(stroke);
     document.getElementById('popup-rect-opacity').value=opacity;
     document.getElementById('popup-rect-opacity-val').textContent=Math.round(opacity)+'%';
-    origState={fill:fill,stroke:stroke,opacity:opacity/100};
+    origState={fill,stroke,opacity:opacity/100};
+  } else if(type==='connector'){
+    const stroke=el.getAttribute('stroke')||'rgba(0,200,255,.85)';
+    const sw=el.getAttribute('stroke-width')||'1.8';
+    const dash=el.getAttribute('stroke-dasharray')||'';
+    document.getElementById('popup-conn-stroke').value=toHex(stroke);
+    document.getElementById('popup-conn-width').value=sw;
+    document.getElementById('popup-conn-width-val').textContent=parseFloat(sw).toFixed(1);
+    document.getElementById('popup-conn-style').value=dash.includes('4')?'dashed':dash.includes('2')?'dotted':'solid';
+    origState={stroke,sw,dash};
+  } else if(type==='icon'){
+    const g=el;
+    const wrapper=g.querySelector('g[style]');
+    const fill=wrapper?wrapper.style.color||'#00aaff':'#00aaff';
+    const t=g.getAttribute('transform')||'';
+    const scM=t.match(/scale\(([\d.]+)\)/);
+    const sc=scM?parseFloat(scM[1]):1.5;
+    const sz=Math.round(sc*32);
+    const op=parseFloat(g.getAttribute('opacity')||1)*100;
+    document.getElementById('popup-icon-fill').value=toHex(fill);
+    document.getElementById('popup-icon-size').value=sz;
+    document.getElementById('popup-icon-size-val').textContent=sz;
+    document.getElementById('popup-icon-opacity').value=op;
+    document.getElementById('popup-icon-opacity-val').textContent=Math.round(op)+'%';
+    origState={fill,sz,op:op/100};
   }
   const vw=window.innerWidth,vh=window.innerHeight;
   pop.classList.add('visible');
@@ -1234,40 +2396,99 @@ function openPopup(el,cx,cy){
   if(left+pw>vw-16) left=cx-pw-16;
   if(top+ph>vh-16) top=vh-ph-16;
   if(top<10) top=10;
-  pop.style.left=left+'px';pop.style.top=top+'px';
+  pop.style.left=left+'px'; pop.style.top=top+'px';
 }
-
 let origState=null;
-
-function closePopup(){document.getElementById('edit-popup').classList.remove('visible');}
-
+function closePopup(){ document.getElementById('edit-popup').classList.remove('visible'); }
 function applyEdit(){
   if(!selectedEl) return closePopup();
-  const type=selectedEl.dataset.editable;
-  const before=snapshotStyle(selectedEl);
+  const type=selectedEl.dataset.editable; const before=snapshotStyle(selectedEl);
   if(type==='text'){
     selectedEl.textContent=document.getElementById('popup-text-input').value;
     selectedEl.setAttribute('fill',document.getElementById('popup-text-fill').value);
     selectedEl.setAttribute('font-size',document.getElementById('popup-font-size').value);
-  } else {
+  } else if(type==='rect'||type==='shape'||type==='connector-free'){
     selectedEl.setAttribute('fill',document.getElementById('popup-rect-fill').value);
     selectedEl.setAttribute('stroke',document.getElementById('popup-rect-stroke').value);
-    const op=parseInt(document.getElementById('popup-rect-opacity').value)/100;
+    selectedEl.setAttribute('opacity',parseInt(document.getElementById('popup-rect-opacity').value)/100);
+  } else if(type==='connector'){
+    const stroke=document.getElementById('popup-conn-stroke').value;
+    const sw=document.getElementById('popup-conn-width').value;
+    const styleVal=document.getElementById('popup-conn-style').value;
+    const dash=styleVal==='dashed'?'6,4':styleVal==='dotted'?'2,3':'';
+    selectedEl.setAttribute('stroke',stroke); selectedEl.setAttribute('stroke-width',sw);
+    if(dash) selectedEl.setAttribute('stroke-dasharray',dash);
+    else selectedEl.removeAttribute('stroke-dasharray');
+    // update marker color
+    selectedEl.setAttribute('marker-end','url(#arrowhead)');
+    showConnEpHandles(connections.find(c=>c.uid===selectedEl.dataset.uid));
+  } else if(type==='icon'){
+    const fill=document.getElementById('popup-icon-fill').value;
+    const sz=parseInt(document.getElementById('popup-icon-size').value);
+    const op=parseInt(document.getElementById('popup-icon-opacity').value)/100;
+    const wrapper=selectedEl.querySelector('g[style]');
+    if(wrapper) wrapper.style.color=fill;
+    const t=selectedEl.getAttribute('transform')||'';
+    const scNew=(sz/32).toFixed(3);
+    selectedEl.setAttribute('transform',t.replace(/scale\([^)]+\)/,`scale(${scNew})`));
     selectedEl.setAttribute('opacity',op);
   }
-  const after=snapshotStyle(selectedEl);
-  pushHistory({type:'style',uid:selectedEl.dataset.uid,before:before,after:after});
-  closePopup();deselectAll();
-  showToast('✓ 已应用修改');
+  pushHistory({type:'style',uid:selectedEl.dataset.uid,before,after:snapshotStyle(selectedEl)});
+  closePopup(); showToast('Changes applied'); refreshLayersPanel();
 }
-
 function liveTextColor(v){if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('fill',v)}
 function liveFontSize(v){document.getElementById('popup-font-size-val').textContent=v;if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('font-size',v)}
-function liveRectFill(v){if(selectedEl&&selectedEl.dataset.editable==='rect') selectedEl.setAttribute('fill',v)}
-function liveRectStroke(v){if(selectedEl&&selectedEl.dataset.editable==='rect') selectedEl.setAttribute('stroke',v)}
-function liveRectOpacity(v){document.getElementById('popup-rect-opacity-val').textContent=Math.round(v)+'%';if(selectedEl&&selectedEl.dataset.editable==='rect') selectedEl.setAttribute('opacity',v/100)}
-function applyFill(v){document.getElementById('fill-preview').style.background=v;if(selectedEl) selectedEl.setAttribute('fill',v);}
-function applyTextColor(v){document.getElementById('text-preview').style.background=v;if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('fill',v);}
+function liveRectFill(v){if(selectedEl&&(selectedEl.dataset.editable==='rect'||selectedEl.dataset.editable==='shape'||selectedEl.dataset.editable==='connector-free')) selectedEl.setAttribute('fill',v)}
+function liveRectStroke(v){if(selectedEl&&(selectedEl.dataset.editable==='rect'||selectedEl.dataset.editable==='shape'||selectedEl.dataset.editable==='connector-free')) selectedEl.setAttribute('stroke',v)}
+function liveRectOpacity(v){document.getElementById('popup-rect-opacity-val').textContent=Math.round(v)+'%';if(selectedEl&&(selectedEl.dataset.editable==='rect'||selectedEl.dataset.editable==='shape'||selectedEl.dataset.editable==='connector-free')) selectedEl.setAttribute('opacity',v/100)}
+function liveConnStroke(v){if(selectedEl&&selectedEl.dataset.editable==='connector') selectedEl.setAttribute('stroke',v);}
+function liveConnWidth(v){document.getElementById('popup-conn-width-val').textContent=parseFloat(v).toFixed(1);if(selectedEl&&selectedEl.dataset.editable==='connector') selectedEl.setAttribute('stroke-width',v);}
+function liveConnStyle(v){
+  if(!selectedEl||selectedEl.dataset.editable!=='connector') return;
+  const dash=v==='dashed'?'6,4':v==='dotted'?'2,3':'';
+  if(dash) selectedEl.setAttribute('stroke-dasharray',dash); else selectedEl.removeAttribute('stroke-dasharray');
+}
+function liveIconFill(v){if(!selectedEl||selectedEl.dataset.editable!=='icon') return;const w=selectedEl.querySelector('g[style]');if(w) w.style.color=v;}
+function liveIconSize(v){
+  document.getElementById('popup-icon-size-val').textContent=v;
+  if(!selectedEl||selectedEl.dataset.editable!=='icon') return;
+  const t=selectedEl.getAttribute('transform')||''; const sc=(parseInt(v)/32).toFixed(3);
+  selectedEl.setAttribute('transform',t.replace(/scale\([^)]+\)/,`scale(${sc})`));
+  updateHandlesPosition();
+}
+function liveIconOpacity(v){document.getElementById('popup-icon-opacity-val').textContent=Math.round(v)+'%';if(!selectedEl||selectedEl.dataset.editable!=='icon') return;selectedEl.setAttribute('opacity',v/100);}
+// Track color-picker drag: snapshot before value on mousedown
+let _fillBeforeVal=null, _textBeforeVal=null;
+document.getElementById('fill-color').addEventListener('mousedown',function(){
+  _fillBeforeVal=selectedEl?selectedEl.getAttribute('fill'):null;
+});
+document.getElementById('text-color').addEventListener('mousedown',function(){
+  _textBeforeVal=selectedEl?selectedEl.getAttribute('fill'):null;
+});
+function applyFill(v){
+  document.getElementById('fill-preview').style.background=v;
+  if(selectedEl) selectedEl.setAttribute('fill',v);
+}
+function applyTextColor(v){
+  document.getElementById('text-preview').style.background=v;
+  if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('fill',v);
+}
+document.getElementById('fill-color').addEventListener('change',function(){
+  if(selectedEl&&_fillBeforeVal!==null&&_fillBeforeVal!==this.value){
+    const before=snapshotStyle(selectedEl);
+    before.fill=_fillBeforeVal;
+    pushHistory({type:'style',uid:selectedEl.dataset.uid,before,after:snapshotStyle(selectedEl)});
+    _fillBeforeVal=null;
+  }
+});
+document.getElementById('text-color').addEventListener('change',function(){
+  if(selectedEl&&selectedEl.dataset.editable==='text'&&_textBeforeVal!==null&&_textBeforeVal!==this.value){
+    const before=snapshotStyle(selectedEl);
+    before.fill=_textBeforeVal;
+    pushHistory({type:'style',uid:selectedEl.dataset.uid,before,after:snapshotStyle(selectedEl)});
+    _textBeforeVal=null;
+  }
+});
 
 // ═══════════════════════════════════════════════════
 //  ADD ELEMENTS
@@ -1276,31 +2497,122 @@ let addCounter=0;
 function addText(){
   const svg=document.getElementById('main-svg');
   const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-  t.setAttribute('x','600');t.setAttribute('y',String(440+addCounter*38));
-  t.setAttribute('text-anchor','middle');t.setAttribute('font-size','16');
-  t.setAttribute('font-family','Inter,sans-serif');t.setAttribute('fill','#ffffff');
-  t.setAttribute('data-editable','text');
-  t.textContent='拖拽移动 · 单击编辑';
-  addCounter++;
-  svg.appendChild(t);
-  ensureUID(t);
-  attachOneDragListener(t);
-  pushHistory({type:'add',uid:t.dataset.uid,outerHTML:t.outerHTML});
-  showToast('✅ 已添加文字 — 可拖拽移动，单击编辑属性');
+  t.setAttribute('x',snapV(600)); t.setAttribute('y',snapV(440+addCounter*38));
+  t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','16');
+  t.setAttribute('font-family','Inter,sans-serif'); t.setAttribute('fill','#ffffff');
+  t.setAttribute('data-editable','text'); t.textContent='New Text';
+  addCounter++; svg.appendChild(t); ensureUID(t); attachOneDragListener(t);
+  pushHistory({type:'add',uid:t.dataset.uid,outerHTML:t.outerHTML}); showToast('Text added');
 }
 function addRect(){
   const svg=document.getElementById('main-svg');
   const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
-  r.setAttribute('x','400');r.setAttribute('y',String(440+addCounter*24));
-  r.setAttribute('width','400');r.setAttribute('height','60');r.setAttribute('rx','12');
-  r.setAttribute('fill','rgba(0,170,255,0.12)');r.setAttribute('stroke','rgba(0,170,255,0.45)');
-  r.setAttribute('stroke-width','1.5');r.setAttribute('data-editable','rect');
-  addCounter++;
-  svg.appendChild(r);
-  ensureUID(r);
-  attachOneDragListener(r);
-  pushHistory({type:'add',uid:r.dataset.uid,outerHTML:r.outerHTML});
-  showToast('✅ 已添加方块 — 可拖拽移动，单击编辑颜色');
+  r.setAttribute('x',snapV(400)); r.setAttribute('y',snapV(440+addCounter*24));
+  r.setAttribute('width','200'); r.setAttribute('height','60'); r.setAttribute('rx','12');
+  r.setAttribute('fill','rgba(0,170,255,0.10)'); r.setAttribute('stroke','rgba(0,170,255,0.45)');
+  r.setAttribute('stroke-width','1.5'); r.setAttribute('data-editable','rect');
+  addCounter++; svg.appendChild(r); ensureUID(r); attachOneDragListener(r);
+  pushHistory({type:'add',uid:r.dataset.uid,outerHTML:r.outerHTML}); showToast('Shape added');
+}
+function addCircle(){
+  const svg=document.getElementById('main-svg');
+  const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  c.setAttribute('cx',snapV(600)); c.setAttribute('cy',snapV(450+addCounter*28));
+  c.setAttribute('r','36');
+  c.setAttribute('fill','rgba(160,96,255,0.12)'); c.setAttribute('stroke','rgba(160,96,255,0.55)');
+  c.setAttribute('stroke-width','1.5'); c.setAttribute('data-editable','rect');
+  addCounter++; svg.appendChild(c); ensureUID(c); attachOneDragListener(c);
+  pushHistory({type:'add',uid:c.dataset.uid,outerHTML:c.outerHTML}); showToast('Circle added');
+}
+function addArrow(){
+  const svg=document.getElementById('main-svg');
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('data-editable','icon');
+  g.setAttribute('transform',`translate(${snapV(520)},${snapV(440+addCounter*24)})`);
+  const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('x1','0'); line.setAttribute('y1','0');
+  line.setAttribute('x2','120'); line.setAttribute('y2','0');
+  line.setAttribute('stroke','rgba(0,200,255,.85)'); line.setAttribute('stroke-width','2.5');
+  line.setAttribute('marker-end','url(#arrowhead)');
+  g.appendChild(line);
+  addCounter++; svg.appendChild(g); ensureUID(g); attachOneDragListener(g);
+  pushHistory({type:'add',uid:g.dataset.uid,outerHTML:g.outerHTML}); showToast('Arrow added');
+}
+
+// ── Icon Library (风格契合：暗黑科技 · SVG path 图标) ──
+const ICON_LIB=[
+  {name:'CPU',color:'#00aaff',svg:`<rect x="6" y="6" width="20" height="20" rx="3" stroke="currentColor" stroke-width="1.5" fill="none"/><rect x="10" y="10" width="12" height="12" rx="1.5" fill="currentColor" opacity=".4"/><line x1="10" y1="3" x2="10" y2="6" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="3" x2="16" y2="6" stroke="currentColor" stroke-width="1.5"/><line x1="22" y1="3" x2="22" y2="6" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="26" x2="10" y2="29" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="26" x2="16" y2="29" stroke="currentColor" stroke-width="1.5"/><line x1="22" y1="26" x2="22" y2="29" stroke="currentColor" stroke-width="1.5"/><line x1="3" y1="10" x2="6" y2="10" stroke="currentColor" stroke-width="1.5"/><line x1="3" y1="16" x2="6" y2="16" stroke="currentColor" stroke-width="1.5"/><line x1="3" y1="22" x2="6" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="26" y1="10" x2="29" y2="10" stroke="currentColor" stroke-width="1.5"/><line x1="26" y1="16" x2="29" y2="16" stroke="currentColor" stroke-width="1.5"/><line x1="26" y1="22" x2="29" y2="22" stroke="currentColor" stroke-width="1.5"/>`},
+  {name:'DB',color:'#a060ff',svg:`<ellipse cx="16" cy="8" rx="10" ry="4" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".15"/><path d="M6 8v8c0 2.2 4.5 4 10 4s10-1.8 10-4V8" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M6 12c0 2.2 4.5 4 10 4s10-1.8 10-4" stroke="currentColor" stroke-width="1.5" fill="none"/>`},
+  {name:'Cloud',color:'#00e0c0',svg:`<path d="M22 17H24a5 5 0 0 0 0-10 5.1 5.1 0 0 0-1 .1A7 7 0 1 0 10 17h12z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".12"/>`},
+  {name:'Code',color:'#6480ff',svg:`<polyline points="10,8 6,16 10,24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><polyline points="22,8 26,16 22,24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><line x1="14" y1="6" x2="18" y2="26" stroke="currentColor" stroke-width="1.5" opacity=".6"/>`},
+  {name:'Star',color:'#ffcc00',svg:`<polygon points="16,4 19.1,12.3 28,12.9 21.5,18.7 23.8,27.4 16,22.5 8.2,27.4 10.5,18.7 4,12.9 12.9,12.3" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".25"/>`},
+  {name:'Brain',color:'#ff60a0',svg:`<path d="M12 20c-1-3-4-5-4-9a8 8 0 0 1 16 0c0 4-3 6-4 9" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M10 20h12v3a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-3z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".15"/><line x1="14" y1="20" x2="14" y2="25" stroke="currentColor" stroke-width="1" opacity=".5"/><line x1="18" y1="20" x2="18" y2="25" stroke="currentColor" stroke-width="1" opacity=".5"/>`},
+  {name:'Lightning',color:'#ffaa00',svg:`<polygon points="17,3 9,17 15,17 11,29 23,13 17,13" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".25"/>`},
+  {name:'Eye',color:'#00aaff',svg:`<path d="M4 16s4-8 12-8 12 8 12 8-4 8-12 8-12-8-12-8z" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="16" cy="16" r="4" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".3"/><circle cx="16" cy="16" r="1.5" fill="currentColor"/>`},
+  {name:'Lock',color:'#a060ff',svg:`<rect x="8" y="14" width="16" height="13" rx="3" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".15"/><path d="M11 14v-4a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="16" cy="21" r="2" fill="currentColor"/>`},
+  {name:'Gear',color:'#00e0c0',svg:`<circle cx="16" cy="16" r="4" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".2"/><path d="M16 4v3M16 25v3M4 16h3M25 16h3M7.1 7.1l2.1 2.1M22.8 22.8l2.1 2.1M7.1 24.9l2.1-2.1M22.8 9.2l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`},
+  {name:'Network',color:'#6480ff',svg:`<circle cx="16" cy="8" r="3" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".3"/><circle cx="6" cy="24" r="3" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".3"/><circle cx="26" cy="24" r="3" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".3"/><line x1="16" y1="11" x2="7" y2="21" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="11" x2="25" y2="21" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="24" x2="23" y2="24" stroke="currentColor" stroke-width="1.5"/>`},
+  {name:'Atom',color:'#ff60a0',svg:`<circle cx="16" cy="16" r="2.5" fill="currentColor"/><ellipse cx="16" cy="16" rx="12" ry="5" stroke="currentColor" stroke-width="1.2" fill="none"/><ellipse cx="16" cy="16" rx="12" ry="5" transform="rotate(60 16 16)" stroke="currentColor" stroke-width="1.2" fill="none"/><ellipse cx="16" cy="16" rx="12" ry="5" transform="rotate(120 16 16)" stroke="currentColor" stroke-width="1.2" fill="none"/>`},
+  {name:'Flow',color:'#00aaff',svg:`<rect x="4" y="12" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".2"/><rect x="20" y="12" width="8" height="8" rx="2" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".2"/><polygon points="14,16 18,13 18,19" fill="currentColor"/>`},
+  {name:'Layer',color:'#a060ff',svg:`<rect x="6" y="20" width="20" height="5" rx="2" stroke="currentColor" stroke-width="1.3" fill="currentColor" fill-opacity=".2"/><rect x="6" y="13" width="20" height="5" rx="2" stroke="currentColor" stroke-width="1.3" fill="currentColor" fill-opacity=".3"/><rect x="6" y="6" width="20" height="5" rx="2" stroke="currentColor" stroke-width="1.3" fill="currentColor" fill-opacity=".4"/>`},
+  {name:'Doc',color:'#00e0c0',svg:`<path d="M10 4h10l6 6v18H6V4h4z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".1"/><path d="M20 4v6h6" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="10" y1="15" x2="22" y2="15" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="19" x2="22" y2="19" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="23" x2="16" y2="23" stroke="currentColor" stroke-width="1.5"/>`},
+  {name:'Wand',color:'#ffaa00',svg:`<line x1="22" y1="6" x2="6" y2="22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M22 6l2-4 2 1-1 3" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="18" y1="4" x2="20" y2="6" stroke="currentColor" stroke-width="1.5"/><line x1="26" y1="12" x2="28" y2="10" stroke="currentColor" stroke-width="1.5"/>`},
+  {name:'Cube',color:'#6480ff',svg:`<path d="M16 4L28 10v12L16 28 4 22V10z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".1"/><path d="M16 4v24M4 10l12 6 12-6" stroke="currentColor" stroke-width="1" opacity=".5"/>`},
+  {name:'Circle+',color:'#ff60a0',svg:`<circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".1"/><line x1="16" y1="10" x2="16" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="10" y1="16" x2="22" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`},
+];
+
+let iconPanelOpen=false;
+function toggleIconPanel(){
+  iconPanelOpen=!iconPanelOpen;
+  const panel=document.getElementById('icon-panel');
+  if(iconPanelOpen){
+    panel.classList.add('visible');
+    // Position near button
+    const btn=document.getElementById('btn-add-icon');
+    const br=btn.getBoundingClientRect();
+    panel.style.top=(br.bottom+8)+'px'; panel.style.left=Math.max(8,br.left-40)+'px';
+    buildIconGrid();
+  } else {
+    panel.classList.remove('visible');
+  }
+  document.getElementById('btn-add-icon').classList.toggle('active',iconPanelOpen);
+}
+function buildIconGrid(){
+  const grid=document.getElementById('icon-grid');
+  grid.innerHTML='';
+  ICON_LIB.forEach((icon,idx)=>{
+    const item=document.createElement('div'); item.className='icon-item';
+    item.title=icon.name;
+    item.innerHTML=`<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="color:${icon.color}">${icon.svg}</svg>`;
+    item.onclick=()=>{ addIcon(idx); toggleIconPanel(); };
+    grid.appendChild(item);
+  });
+}
+function addIcon(iconIdx){
+  const svg=document.getElementById('main-svg');
+  const icon=ICON_LIB[iconIdx];
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('data-editable','icon');
+  g.setAttribute('data-icon-idx',String(iconIdx));
+  const cx=snapV(600+addCounter*30), cy=snapV(450+addCounter*30);
+  const scale=1.5; // 32*1.5=48px icon
+  g.setAttribute('transform',`translate(${cx},${cy}) scale(${scale})`);
+  g.setAttribute('fill','none');
+  // Render icon SVG content, replacing currentColor with icon.color
+  const wrapper=document.createElementNS('http://www.w3.org/2000/svg','g');
+  wrapper.setAttribute('style',`color:${icon.color}`);
+  // Parse icon.svg and append children
+  const tmpSvg=new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${icon.svg}</svg>`,'image/svg+xml');
+  Array.from(tmpSvg.documentElement.childNodes).forEach(n=>wrapper.appendChild(svg.ownerDocument.importNode(n,true)));
+  g.appendChild(wrapper);
+  addCounter++; svg.appendChild(g); ensureUID(g); attachOneDragListener(g);
+  pushHistory({type:'add',uid:g.dataset.uid,outerHTML:g.outerHTML}); showToast(`${icon.name} icon added`);
+  // select it
+  deselectAll(); hideHandles(); selectedEl=g; g.classList.add('selected');
+  document.getElementById('btn-delete').disabled=false;
+  document.getElementById('btn-copy').disabled=false;
+  document.getElementById('btn-dup').disabled=false;
+  showHandles(g); updateLockBtn(); updateZOrderBtns(true);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1308,13 +2620,17 @@ function addRect(){
 // ═══════════════════════════════════════════════════
 function deleteSelected(){
   if(!selectedEl) return;
-  const before=snapshotStyle(selectedEl);
-  pushHistory({type:'delete',uid:selectedEl.dataset.uid,outerHTML:selectedEl.outerHTML});
-  selectedEl.remove();
-  selectedEl=null;
+  if(selectedEl.dataset.locked==='1'){ showToast('Locked — press L to unlock'); return; }
+  const uid=selectedEl.dataset.uid;
+  pushHistory({type:'delete',uid,outerHTML:selectedEl.outerHTML});
+  // remove associated connectors
+  const toRemove=connections.filter(c=>c.srcUid===uid||c.dstUid===uid||c.uid===uid);
+  toRemove.forEach(c=>{ c.el.remove(); connections.splice(connections.indexOf(c),1); });
+  selectedEl.remove(); selectedEl=null;
   document.getElementById('btn-delete').disabled=true;
-  closePopup();
-  showToast('🗑 已删除，Ctrl+Z 可撤回');
+  hideHandles(); hideConnEpHandles(); closePopup(); updateLockBtn(); updateZOrderBtns(false);
+  updatePropBar(null); refreshLayersPanel();
+  showToast('Deleted — Ctrl+Z to undo');
 }
 
 // ═══════════════════════════════════════════════════
@@ -1322,51 +2638,267 @@ function deleteSelected(){
 // ═══════════════════════════════════════════════════
 function exportSVG(){
   const svg=document.getElementById('main-svg');
-  const s=new XMLSerializer().serializeToString(svg);
-  const blob=new Blob([s],{type:'image/svg+xml'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='autofigure-edit-keynote.svg';a.click();
-  showToast('💾 SVG 已下载');
+  const blob=new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='autofigure-edit.svg'; a.click();
+  showToast('SVG downloaded');
 }
 function exportPNG(){
   const svg=document.getElementById('main-svg');
-  const s=new XMLSerializer().serializeToString(svg);
-  const blob=new Blob([s],{type:'image/svg+xml'});
-  const url=URL.createObjectURL(blob);
-  const img=new Image();
+  const blob=new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'});
+  const url=URL.createObjectURL(blob); const img=new Image();
   img.onload=function(){
-    const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=800;
-    const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
-    canvas.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='autofigure-edit-keynote.png';a.click();showToast('🖼 PNG 已下载');});
+    const canvas=document.createElement('canvas'); canvas.width=1200; canvas.height=800;
+    canvas.getContext('2d').drawImage(img,0,0);
+    canvas.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='autofigure-edit.png'; a.click(); showToast('PNG downloaded'); });
   };
   img.src=url;
 }
 
 // ── Toast ──
+let toastTimer=null;
 function showToast(msg){
-  const t=document.getElementById('toast');t.textContent=msg;
-  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
 }
+
+// ═══════════════════════════════════════════════════
+//  GROUP / UNGROUP
+// ═══════════════════════════════════════════════════
+let groupCounter=0;
+function groupSelected(){
+  // Need at least 2 selected elements
+  const els=multiSelection.length>1 ? multiSelection.slice()
+           : (selectedEl ? [selectedEl] : []);
+  if(els.length<2){ showToast('请先多选2个以上元素 (Ctrl+单击)'); return; }
+  const svg=document.getElementById('main-svg');
+  const gid='grp-'+(++groupCounter)+'-'+Date.now().toString(36);
+  // Create <g> wrapper
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('data-editable','group');
+  g.setAttribute('data-group-id',gid);
+  ensureUID(g);
+  // Insert <g> before first element in DOM order (keeps z-order)
+  let firstEl=els.reduce((a,b)=>{
+    return a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING?a:b;
+  });
+  svg.insertBefore(g,firstEl);
+  // Move all els into <g> (preserve DOM order)
+  const sorted=[...els].sort((a,b)=>a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING?-1:1);
+  sorted.forEach(el=>{
+    el.classList.remove('selected','multi-selected');
+    g.appendChild(el);
+  });
+  // Attach drag listener
+  g.setAttribute('transform','translate(0,0)');
+  attachOneDragListener(g);
+  // Push history: store uids + HTML of grouped children for undo support
+  const childUIDs=sorted.map(e=>e.dataset.uid);
+  const childrenHTML=sorted.map(e=>e.outerHTML);
+  pushHistory({type:'group',groupUid:g.dataset.uid,childUIDs,childrenHTML,gid});
+  // Select the group
+  deselectAll(); multiSelection=[]; hideHandles();
+  selectedEl=g; g.classList.add('selected');
+  document.getElementById('btn-delete').disabled=false;
+  document.getElementById('btn-copy').disabled=false;
+  document.getElementById('btn-dup').disabled=false;
+  showHandles(g); updateLockBtn(); updateZOrderBtns(true);
+  updateGroupBtns(); updatePropBar(g); refreshLayersPanel();
+  showToast(`已组合 ${sorted.length} 个元素`);
+}
+
+function ungroupSelected(){
+  const g=selectedEl;
+  if(!g||!g.dataset.groupId){ showToast('请先选中一个组合元素'); return; }
+  const svg=document.getElementById('main-svg');
+  const children=[...g.children];
+  if(!children.length){ svg.removeChild(g); return; }
+  // Get <g> transform offset
+  const [tx,ty]=getTranslateTuple(g);
+  // Insert children after <g>
+  const refNode=g.nextSibling;
+  children.forEach(child=>{
+    // Apply <g> transform to children positions
+    if(tx!==0||ty!==0){
+      const tag=child.tagName.toLowerCase();
+      if(tag==='g'){
+        const [cx,cy]=getTranslateTuple(child);
+        child.setAttribute('transform',`translate(${cx+tx},${cy+ty})`);
+      } else if(tag==='circle'||tag==='ellipse'){
+        child.setAttribute('cx',parseFloat(child.getAttribute('cx')||0)+tx);
+        child.setAttribute('cy',parseFloat(child.getAttribute('cy')||0)+ty);
+      } else if(tag==='line'){
+        child.setAttribute('x1',parseFloat(child.getAttribute('x1')||0)+tx);
+        child.setAttribute('y1',parseFloat(child.getAttribute('y1')||0)+ty);
+        child.setAttribute('x2',parseFloat(child.getAttribute('x2')||0)+tx);
+        child.setAttribute('y2',parseFloat(child.getAttribute('y2')||0)+ty);
+      } else {
+        child.setAttribute('x',parseFloat(child.getAttribute('x')||0)+tx);
+        child.setAttribute('y',parseFloat(child.getAttribute('y')||0)+ty);
+      }
+    }
+    svg.insertBefore(child,refNode);
+    attachOneDragListener(child);
+  });
+  const childUIDs=children.map(e=>e.dataset.uid);
+  const childrenHTML=children.map(e=>e.outerHTML);
+  const gid=g.dataset.groupId;
+  const groupUid=g.dataset.uid;
+  svg.removeChild(g);
+  // Push history
+  pushHistory({type:'ungroup',groupUid,childUIDs,childrenHTML,gid,tx,ty});
+  // Multi-select children
+  deselectAll(); hideHandles();
+  multiSelection=children.slice();
+  children.forEach(el=>el.classList.add('multi-selected'));
+  selectedEl=null;
+  updateAlignBtns(true); updateZOrderBtns(false); updateGroupBtns();
+  updateLockBtn(); refreshLayersPanel();
+  showToast(`已解组 ${children.length} 个元素`);
+}
+
+// ═══════════════════════════════════════════════════
+//  CANVAS ZOOM & PAN
+// ═══════════════════════════════════════════════════
+const ZOOM_MIN=0.1, ZOOM_MAX=8, ZOOM_STEPS=[0.1,0.15,0.2,0.25,0.33,0.5,0.67,0.75,1,1.25,1.5,2,2.5,3,4,5,6,8];
+
+function applyZoom(){
+  const inner=document.getElementById('canvas-inner');
+  inner.style.transform=`translate(${canvasPanX}px,${canvasPanY}px) scale(${canvasScale})`;
+  document.getElementById('zoom-label').textContent=Math.round(canvasScale*100)+'%';
+  updateHandlesPosition();
+  updateConnectorLines();
+}
+
+function zoomStep(dir){
+  const idx=ZOOM_STEPS.findIndex(z=>z>=canvasScale-(dir>0?0.001:0));
+  let ni;
+  if(dir>0) ni=idx<0?ZOOM_STEPS.length-1:Math.min(ZOOM_STEPS.length-1,idx+(ZOOM_STEPS[idx]===canvasScale?1:0));
+  else ni=Math.max(0,(idx<=0?0:idx-1));
+  // Zoom toward center of viewport
+  const vp=document.getElementById('canvas-viewport');
+  const cx=vp.clientWidth/2, cy=vp.clientHeight/2;
+  zoomToPoint(ZOOM_STEPS[ni],cx,cy);
+}
+
+function zoomToPoint(newScale, vpX, vpY){
+  // keep the canvas-point under (vpX,vpY) fixed
+  const canvasX=(vpX-canvasPanX)/canvasScale;
+  const canvasY=(vpY-canvasPanY)/canvasScale;
+  canvasScale=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,newScale));
+  canvasPanX=vpX-canvasX*canvasScale;
+  canvasPanY=vpY-canvasY*canvasScale;
+  applyZoom();
+}
+
+function zoomReset(){
+  canvasScale=1; canvasPanX=0; canvasPanY=0; applyZoom();
+}
+
+function zoomFit(){
+  const vp=document.getElementById('canvas-viewport');
+  const svgEl=document.getElementById('main-svg');
+  const vw=vp.clientWidth, vh=vp.clientHeight;
+  const svgW=svgEl.viewBox.baseVal.width||1200;
+  const svgH=svgEl.viewBox.baseVal.height||800;
+  const s=Math.min((vw-40)/svgW,(vh-40)/svgH,4);
+  canvasScale=s;
+  canvasPanX=(vw-svgW*s)/2;
+  canvasPanY=(vh-svgH*s)/2;
+  applyZoom();
+}
+
+// ── Wheel zoom (pinch-to-zoom friendly) ──
+(function(){
+  const vp=document.getElementById('canvas-viewport');
+  vp.addEventListener('wheel',function(e){
+    e.preventDefault();
+    const factor=e.ctrlKey?0.02:0.12; // pinch: small steps; wheel: bigger
+    const delta=e.deltaY<0?1:-1;
+    const newScale=canvasScale*(1+delta*factor);
+    const rect=vp.getBoundingClientRect();
+    zoomToPoint(newScale, e.clientX-rect.left, e.clientY-rect.top);
+  },{passive:false});
+})();
+
+// ── Space + drag to pan ──
+let isPanning=false, panStartX=0, panStartY=0, panStartPX=0, panStartPY=0;
+let spaceDown=false;
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'&&!e.repeat&&e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){
+    spaceDown=true;
+    document.getElementById('canvas-viewport').style.cursor='grab';
+    e.preventDefault();
+  }
+},true);
+document.addEventListener('keyup',function(e){
+  if(e.code==='Space'){
+    spaceDown=false;
+    if(!isPanning) document.getElementById('canvas-viewport').style.cursor='';
+  }
+},true);
+document.getElementById('canvas-viewport').addEventListener('mousedown',function(e){
+  if(spaceDown&&e.button===0){
+    isPanning=true; panStartX=e.clientX; panStartY=e.clientY;
+    panStartPX=canvasPanX; panStartPY=canvasPanY;
+    document.getElementById('canvas-viewport').style.cursor='grabbing';
+    e.preventDefault(); e.stopPropagation();
+  }
+});
+document.addEventListener('mousemove',function(e){
+  if(!isPanning) return;
+  canvasPanX=panStartPX+(e.clientX-panStartX);
+  canvasPanY=panStartPY+(e.clientY-panStartY);
+  applyZoom();
+});
+document.addEventListener('mouseup',function(e){
+  if(isPanning){ isPanning=false; document.getElementById('canvas-viewport').style.cursor=spaceDown?'grab':''; }
+});
+
+// ── Touch pan & pinch-zoom ──
+(function(){
+  const vp=document.getElementById('canvas-viewport');
+  let touches=[], lastDist=0;
+  vp.addEventListener('touchstart',function(e){
+    touches=[...e.touches];
+    if(touches.length===2) lastDist=Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);
+  },{passive:true});
+  vp.addEventListener('touchmove',function(e){
+    if(e.touches.length===2){
+      e.preventDefault();
+      const t=[...e.touches];
+      const dist=Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+      const mx=(t[0].clientX+t[1].clientX)/2, my=(t[0].clientY+t[1].clientY)/2;
+      const rect=vp.getBoundingClientRect();
+      zoomToPoint(canvasScale*(dist/lastDist),mx-rect.left,my-rect.top);
+      lastDist=dist;
+    } else if(e.touches.length===1&&touches.length===1){
+      canvasPanX+=e.touches[0].clientX-touches[0].clientX;
+      canvasPanY+=e.touches[0].clientY-touches[0].clientY;
+      touches=[...e.touches]; applyZoom();
+    }
+  },{passive:false});
+  vp.addEventListener('touchend',function(e){ touches=[...e.touches]; },{passive:true});
+})();
 
 // ── Color util ──
 function toHex(c){
   if(!c||c.startsWith('#')) return c||'#000000';
-  const d=document.createElement('div');d.style.color=c;
-  document.body.appendChild(d);
-  const cs=getComputedStyle(d).color;document.body.removeChild(d);
-  const m=cs.match(/\d+/g);if(!m) return '#000000';
+  const d=document.createElement('div'); d.style.color=c; document.body.appendChild(d);
+  const cs=getComputedStyle(d).color; document.body.removeChild(d);
+  const m=cs.match(/\d+/g); if(!m) return '#000000';
   return '#'+m.slice(0,3).map(n=>parseInt(n).toString(16).padStart(2,'0')).join('');
 }
-
-document.getElementById('fill-color').addEventListener('input',function(){document.getElementById('fill-preview').style.background=this.value;});
-document.getElementById('text-color').addEventListener('input',function(){document.getElementById('text-preview').style.background=this.value;});
-
 // ── INIT ──
-// Assign UIDs and attach drag listeners on page load (so elements are always draggable when edit mode opens)
 initAllUIDs();
-// Note: drag events only activate when editMode===true, so no impact in read-only mode
 attachEditListeners();
 refreshUndoRedoBtns();
+applyZoom();
+window.addEventListener('resize',()=>{ updateConnectorLines(); updateHandlesPosition(); applyZoom(); });
+// Layers panel button
+document.getElementById('btn-layers').onclick=toggleLayersPanel;
+
+
 </script>
 </body>
 </html>
