@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AutoFigure-Edit — ICLR 2026</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#00aaff;--purple:#a060ff;--teal:#00e0c0;--white:#fff;--bg:#080812}
+html,body{width:100%;min-height:100vh;background:var(--bg);font-family:'Inter',-apple-system,'SF Pro Display',sans-serif;color:#fff;overflow-x:hidden}
+
+/* stars */
+#stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle linear infinite}
+@keyframes twinkle{0%,100%{opacity:.1;transform:scale(1)}50%{opacity:.9;transform:scale(1.3)}}
+
+/* ambient */
+.ambient{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;opacity:.18;animation:drift 14s ease-in-out infinite alternate}
+.a1{width:600px;height:600px;background:var(--blue);top:-200px;left:-200px}
+.a2{width:500px;height:500px;background:var(--purple);bottom:-150px;right:-150px;animation-delay:-7s}
+.a3{width:400px;height:400px;background:var(--teal);top:40%;left:50%;transform:translate(-50%,-50%);animation-delay:-3s;opacity:.08}
+@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,30px) scale(1.1)}}
+
+.page-wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:60px 40px 100px}
+
+/* header */
+.header{text-align:center;margin-bottom:56px}
+.badge{display:inline-block;background:linear-gradient(135deg,rgba(0,170,255,.15),rgba(160,96,255,.15));border:1px solid rgba(0,170,255,.35);border-radius:20px;padding:6px 20px;font-size:13px;font-weight:600;letter-spacing:.08em;color:var(--blue);text-transform:uppercase;margin-bottom:24px}
+h1{font-size:clamp(42px,6vw,80px);font-weight:800;line-height:1.08;letter-spacing:-.03em;background:linear-gradient(120deg,#60cfff 0%,#fff 45%,#bf8fff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}
+.tagline{font-size:clamp(16px,2vw,22px);color:rgba(255,255,255,.55);max-width:640px;margin:0 auto 28px;line-height:1.5}
+.meta-row{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
+.meta-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:7px 16px;font-size:13px;font-weight:500;color:rgba(255,255,255,.7)}
+
+/* ── EDITOR TOOLBAR ── */
+#editor-toolbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;padding:12px 20px;margin-bottom:20px;
+  position:sticky;top:12px;z-index:100;backdrop-filter:blur(20px);
+}
+.tb-label{font-size:12px;font-weight:600;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
+.tb-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;padding:7px 14px;font-size:13px;font-weight:500;color:rgba(255,255,255,.8);
+  cursor:pointer;transition:all .2s;white-space:nowrap
+}
+.tb-btn:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:#fff}
+.tb-btn.active{background:rgba(0,170,255,.2);border-color:rgba(0,170,255,.5);color:var(--blue)}
+.tb-btn.danger{background:rgba(255,80,80,.1);border-color:rgba(255,80,80,.3);color:#ff6060}
+.tb-sep{width:1px;height:28px;background:rgba(255,255,255,.1);flex-shrink:0}
+.tb-color{width:28px;height:28px;border-radius:6px;border:2px solid rgba(255,255,255,.2);cursor:pointer;padding:0;background:transparent;overflow:hidden}
+.tb-color input{width:40px;height:40px;border:none;cursor:pointer;margin-top:-6px;margin-left:-6px;opacity:0;position:absolute}
+.tb-color-wrap{position:relative;width:28px;height:28px;border-radius:6px;border:2px solid rgba(255,255,255,.2);overflow:hidden;cursor:pointer;flex-shrink:0}
+.tb-color-wrap input[type=color]{position:absolute;inset:-4px;width:calc(100%+8px);height:calc(100%+8px);cursor:pointer;border:none;padding:0}
+.tb-color-preview{position:absolute;inset:0;pointer-events:none;border-radius:4px}
+#edit-hint{font-size:12px;color:rgba(255,255,255,.3);margin-left:auto}
+
+/* SVG showcase */
+.svg-wrap{
+  position:relative;border-radius:24px;overflow:hidden;margin-bottom:60px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.08),0 40px 80px rgba(0,0,0,.6),0 0 120px rgba(0,170,255,.12);
+}
+.svg-wrap svg{display:block;width:100%;height:auto}
+
+/* editable element highlight */
+.svg-wrap.edit-mode [data-editable]{cursor:pointer;transition:filter .2s}
+.svg-wrap.edit-mode [data-editable]:hover{filter:brightness(1.4) drop-shadow(0 0 6px rgba(0,170,255,.8))}
+.svg-wrap.edit-mode [data-editable].selected{filter:brightness(1.5) drop-shadow(0 0 10px rgba(0,170,255,1))}
+
+/* floating edit popup */
+#edit-popup{
+  display:none;position:fixed;z-index:999;
+  background:rgba(14,14,28,.95);border:1px solid rgba(0,170,255,.4);
+  border-radius:14px;padding:16px 20px;min-width:260px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 30px rgba(0,170,255,.15);
+  backdrop-filter:blur(20px);
+}
+#edit-popup.visible{display:block}
+.popup-title{font-size:12px;font-weight:600;color:var(--blue);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+.popup-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.popup-row label{font-size:12px;color:rgba(255,255,255,.5);width:50px;flex-shrink:0}
+.popup-row input[type=text],.popup-row textarea{
+  flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+  border-radius:8px;padding:7px 10px;font-size:13px;color:#fff;font-family:inherit;
+  outline:none;resize:none;
+}
+.popup-row input[type=text]:focus,.popup-row textarea:focus{border-color:rgba(0,170,255,.6)}
+.popup-row input[type=color]{width:36px;height:30px;border:none;border-radius:6px;cursor:pointer;background:none;padding:0}
+.popup-row input[type=range]{flex:1;accent-color:var(--blue)}
+.popup-btns{display:flex;gap:8px;margin-top:14px}
+.popup-btn{flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.popup-btn.ok{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff}
+.popup-btn.ok:hover{opacity:.85}
+.popup-btn.cancel{background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1)}
+.popup-btn.cancel:hover{background:rgba(255,255,255,.12);color:#fff}
+
+/* rest of layout */
+.section-title{text-align:center;font-size:clamp(24px,3vw,36px);font-weight:700;letter-spacing:-.02em;margin-bottom:36px;background:linear-gradient(90deg,var(--blue),#fff 50%,var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:64px}
+@media(max-width:900px){.pipeline{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.pipeline{grid-template-columns:1fr}}
+.step-card{background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);padding:32px 24px;position:relative;overflow:hidden;transition:transform .3s,box-shadow .3s;cursor:default}
+.step-card:first-child{border-radius:20px 0 0 20px}
+.step-card:last-child{border-radius:0 20px 20px 0}
+.step-card:hover{transform:translateY(-4px);box-shadow:0 24px 48px rgba(0,0,0,.4)}
+.step-num{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:14px}
+.s-blue{color:var(--blue)}.s-purple{color:var(--purple)}.s-teal{color:var(--teal)}.s-indigo{color:#6480ff}
+.step-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:18px}
+.si-blue{background:linear-gradient(135deg,rgba(0,170,255,.25),rgba(0,170,255,.08));border:1px solid rgba(0,170,255,.3)}
+.si-purple{background:linear-gradient(135deg,rgba(160,96,255,.25),rgba(160,96,255,.08));border:1px solid rgba(160,96,255,.3)}
+.si-teal{background:linear-gradient(135deg,rgba(0,224,192,.25),rgba(0,224,192,.08));border:1px solid rgba(0,224,192,.3)}
+.si-indigo{background:linear-gradient(135deg,rgba(100,120,255,.25),rgba(100,120,255,.08));border:1px solid rgba(100,120,255,.3)}
+.step-card h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.step-card p{font-size:13px;color:rgba(255,255,255,.48);line-height:1.6}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:64px}
+@media(max-width:800px){.features{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.features{grid-template-columns:1fr}}
+.feat-card{background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:26px 22px;transition:transform .25s,box-shadow .25s}
+.feat-card:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.35);border-color:rgba(255,255,255,.15)}
+.feat-icon{font-size:26px;margin-bottom:12px}
+.feat-card h4{font-size:14px;font-weight:600;margin-bottom:6px}
+.feat-card p{font-size:12px;color:rgba(255,255,255,.43);line-height:1.6}
+.cta-section{text-align:center}
+.cta-section p{font-size:17px;color:rgba(255,255,255,.5);margin-bottom:24px}
+.cta-btn{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;border-radius:99px;padding:15px 38px;font-size:15px;font-weight:600;color:#fff;cursor:pointer;text-decoration:none;box-shadow:0 8px 32px rgba(0,170,255,.3);transition:transform .25s,box-shadow .25s}
+.cta-btn:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 16px 48px rgba(0,170,255,.45)}
+.cta-ghost{display:inline-flex;align-items:center;gap:10px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:15px 38px;font-size:15px;font-weight:500;color:rgba(255,255,255,.7);cursor:pointer;text-decoration:none;margin-left:14px;transition:border-color .25s,color .25s}
+.cta-ghost:hover{border-color:rgba(255,255,255,.5);color:#fff}
+footer{margin-top:72px;text-align:center;font-size:12px;color:rgba(255,255,255,.22)}
+footer a{color:rgba(255,255,255,.38);text-decoration:none}
+footer a:hover{color:var(--blue)}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:none}
+
+/* export toast */
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(0,170,255,.9);color:#fff;padding:12px 28px;border-radius:99px;font-size:14px;font-weight:600;z-index:9999;transition:transform .4s ease,opacity .4s ease;opacity:0;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+<div class="ambient a1"></div>
+<div class="ambient a2"></div>
+<div class="ambient a3"></div>
+
+<div class="page-wrap">
+
+  <!-- Header -->
+  <header class="header reveal">
+    <div class="badge">✦ ICLR 2026 · Westlake University · ResearAI</div>
+    <h1>AutoFigure-Edit</h1>
+    <p class="tagline">将论文方法段文字，自动转化为精美可编辑的 SVG 插图。告别手工绘图，专注研究本身。</p>
+    <div class="meta-row">
+      <div class="meta-chip">🏔️ 西湖大学 × ResearAI</div>
+      <div class="meta-chip">🏆 ICLR 2026</div>
+      <div class="meta-chip">⚡ 全流程自动化</div>
+      <div class="meta-chip">🎨 可编辑 SVG 输出</div>
+    </div>
+  </header>
+
+  <!-- Editor Toolbar -->
+  <div id="editor-toolbar" class="reveal">
+    <span class="tb-label">编辑器</span>
+    <button class="tb-btn" id="btn-edit-mode" onclick="toggleEditMode()">✏️ 开启编辑</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="btn-add-text" onclick="addText()" disabled>＋ 添加文字</button>
+    <button class="tb-btn" id="btn-add-rect" onclick="addRect()" disabled>▭ 添加方块</button>
+    <div class="tb-sep"></div>
+    <span class="tb-label" style="font-size:11px">填充色</span>
+    <div class="tb-color-wrap" id="fill-wrap">
+      <div class="tb-color-preview" id="fill-preview" style="background:#00aaff"></div>
+      <input type="color" id="fill-color" value="#00aaff" oninput="applyFill(this.value)"/>
+    </div>
+    <span class="tb-label" style="font-size:11px">文字色</span>
+    <div class="tb-color-wrap" id="text-wrap">
+      <div class="tb-color-preview" id="text-preview" style="background:#ffffff"></div>
+      <input type="color" id="text-color" value="#ffffff" oninput="applyTextColor(this.value)"/>
+    </div>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="btn-delete" onclick="deleteSelected()" disabled>🗑 删除</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="exportSVG()">💾 导出 SVG</button>
+    <button class="tb-btn" onclick="exportPNG()">🖼 导出 PNG</button>
+    <span id="edit-hint">点击「开启编辑」，然后点击 SVG 中任意元素即可编辑</span>
+  </div>
+
+  <!-- SVG Showcase -->
+  <div class="svg-wrap reveal" id="svg-container">
+    <svg id="main-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+      <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#0a0a0f"/>
+          <stop offset="50%" style="stop-color:#0d0d1a"/>
+          <stop offset="100%" style="stop-color:#080812"/>
+        </linearGradient>
+        <radialGradient id="blueGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" style="stop-color:#0af;stop-opacity:0.25"/>
+          <stop offset="100%" style="stop-color:#0af;stop-opacity:0"/>
+        </radialGradient>
+        <radialGradient id="purpleGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" style="stop-color:#a060ff;stop-opacity:0.2"/>
+          <stop offset="100%" style="stop-color:#a060ff;stop-opacity:0"/>
+        </radialGradient>
+        <linearGradient id="cardBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#0a2a4a"/>
+          <stop offset="100%" style="stop-color:#071828"/>
+        </linearGradient>
+        <linearGradient id="cardPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#1a0a3a"/>
+          <stop offset="100%" style="stop-color:#100720"/>
+        </linearGradient>
+        <linearGradient id="cardTeal" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#0a2a2a"/>
+          <stop offset="100%" style="stop-color:#071818"/>
+        </linearGradient>
+        <linearGradient id="cardIndigo" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#0e1040"/>
+          <stop offset="100%" style="stop-color:#080a28"/>
+        </linearGradient>
+        <radialGradient id="iconBlue" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" style="stop-color:#40c0ff"/>
+          <stop offset="100%" style="stop-color:#0066cc"/>
+        </radialGradient>
+        <radialGradient id="iconPurple" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" style="stop-color:#c080ff"/>
+          <stop offset="100%" style="stop-color:#6600cc"/>
+        </radialGradient>
+        <radialGradient id="iconTeal" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" style="stop-color:#40e0c0"/>
+          <stop offset="100%" style="stop-color:#008866"/>
+        </radialGradient>
+        <radialGradient id="iconIndigo" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" style="stop-color:#8090ff"/>
+          <stop offset="100%" style="stop-color:#3040cc"/>
+        </radialGradient>
+        <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#60cfff"/>
+          <stop offset="50%" style="stop-color:#ffffff"/>
+          <stop offset="100%" style="stop-color:#bf8fff"/>
+        </linearGradient>
+        <linearGradient id="subtitleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#4ab0e8"/>
+          <stop offset="100%" style="stop-color:#9c66e0"/>
+        </linearGradient>
+        <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#0af;stop-opacity:0.8"/>
+          <stop offset="100%" style="stop-color:#a060ff;stop-opacity:0.8"/>
+        </linearGradient>
+        <pattern id="dot" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+          <circle cx="20" cy="20" r="1" fill="white"/>
+        </pattern>
+        <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="12" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- BG -->
+      <rect width="1200" height="800" fill="url(#bgGrad)"/>
+      <ellipse cx="250" cy="180" rx="320" ry="260" fill="url(#blueGlow)" opacity="0.7"/>
+      <ellipse cx="950" cy="620" rx="300" ry="240" fill="url(#purpleGlow)" opacity="0.7"/>
+      <rect width="1200" height="800" fill="url(#dot)" opacity="0.05"/>
+
+      <!-- Title -->
+      <text data-editable="text" x="600" y="64" text-anchor="middle"
+        font-family="'SF Pro Display',Inter,sans-serif" font-size="13" font-weight="600"
+        fill="#00aaff" letter-spacing="3" opacity="0.9">
+        ✦  ICLR 2026 · WESTLAKE UNIVERSITY · RESEARAI  ✦
+      </text>
+      <text data-editable="text" x="600" y="120" text-anchor="middle"
+        font-family="'SF Pro Display',Inter,sans-serif" font-size="60" font-weight="800"
+        fill="url(#titleGrad)" letter-spacing="-2">AutoFigure-Edit</text>
+      <text data-editable="text" x="600" y="160" text-anchor="middle"
+        font-family="'SF Pro Display',Inter,sans-serif" font-size="22" font-weight="300"
+        fill="url(#subtitleGrad)" opacity="0.85">论文方法段文字 → 可编辑 SVG 学术插图</text>
+
+      <line x1="400" y1="182" x2="800" y2="182" stroke="url(#arrowGrad)" stroke-width="1" opacity="0.4"/>
+      <text data-editable="text" x="600" y="214" text-anchor="middle"
+        font-family="'SF Pro Display',Inter,sans-serif" font-size="13" font-weight="600"
+        fill="rgba(255,255,255,0.45)" letter-spacing="2">四步全自动流水线  ·  Four-Step Pipeline</text>
+
+      <!-- Card 1 -->
+      <rect data-editable="rect" x="55" y="235" width="245" height="175" rx="16" fill="url(#cardBlue)" stroke="rgba(0,170,255,0.3)" stroke-width="1"/>
+      <rect x="55" y="235" width="245" height="4" rx="2" fill="url(#iconBlue)" opacity="0.8"/>
+      <circle cx="80" cy="260" r="14" fill="url(#iconBlue)" opacity="0.9"/>
+      <text x="80" y="265" text-anchor="middle" font-size="12" fill="white" font-weight="700">01</text>
+      <text data-editable="text" x="115" y="256" font-family="'SF Pro Display',Inter,sans-serif" font-size="15" font-weight="700" fill="white">LLM 文图生成</text>
+      <text data-editable="text" x="115" y="274" font-family="'SF Pro Display',Inter,sans-serif" font-size="12" fill="rgba(0,170,255,0.85)">Text-to-Image</text>
+      <rect x="70" y="294" width="210" height="56" rx="10" fill="rgba(0,170,255,0.07)" stroke="rgba(0,170,255,0.15)" stroke-width="1"/>
+      <text x="175" y="318" text-anchor="middle" font-size="22">🤖</text>
+      <text data-editable="text" x="175" y="340" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="rgba(255,255,255,0.5)">GPT-4o · Gemini · 本地LLM</text>
+      <text data-editable="text" x="175" y="396" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="rgba(255,255,255,0.35)" font-style="italic">根据方法文字生成初始图像</text>
+
+      <!-- Arrow 1→2 -->
+      <line x1="302" y1="322" x2="338" y2="322" stroke="url(#arrowGrad)" stroke-width="2" opacity="0.7"/>
+      <polygon points="338,317 348,322 338,327" fill="#a060ff" opacity="0.8"/>
+
+      <!-- Card 2 -->
+      <rect data-editable="rect" x="350" y="235" width="245" height="175" rx="16" fill="url(#cardPurple)" stroke="rgba(160,96,255,0.3)" stroke-width="1"/>
+      <rect x="350" y="235" width="245" height="4" rx="2" fill="url(#iconPurple)" opacity="0.8"/>
+      <circle cx="375" cy="260" r="14" fill="url(#iconPurple)" opacity="0.9"/>
+      <text x="375" y="265" text-anchor="middle" font-size="12" fill="white" font-weight="700">02</text>
+      <text data-editable="text" x="410" y="256" font-family="'SF Pro Display',Inter,sans-serif" font-size="15" font-weight="700" fill="white">SAM3 分割</text>
+      <text data-editable="text" x="410" y="274" font-family="'SF Pro Display',Inter,sans-serif" font-size="12" fill="rgba(160,96,255,0.85)">Segmentation</text>
+      <rect x="365" y="294" width="210" height="56" rx="10" fill="rgba(160,96,255,0.07)" stroke="rgba(160,96,255,0.15)" stroke-width="1"/>
+      <text x="470" y="318" text-anchor="middle" font-size="22">✂️</text>
+      <text data-editable="text" x="470" y="340" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="rgba(255,255,255,0.5)">Roboflow · fal.ai · 本地部署</text>
+      <text data-editable="text" x="470" y="396" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="rgba(255,255,255,0.35)" font-style="italic">语义分割识别图像各元素</text>
+
+      <!-- Arrow 2→3 -->
+      <line x1="597" y1="322" x2="633" y2="322" stroke="url(#arrowGrad)" stroke-width="2" opacity="0.7"/>
+      <polygon points="633,317 643,322 633,327" fill="#00c4a0" opacity="0.8"/>
+
+      <!-- Card 3 -->
+      <rect data-editable="rect" x="645" y="235" width="245" height="175" rx="16" fill="url(#cardTeal)" stroke="rgba(0,224,192,0.3)" stroke-width="1"/>
+      <rect x="645" y="235" width="245" height="4" rx="2" fill="url(#iconTeal)" opacity="0.8"/>
+      <circle cx="670" cy="260" r="14" fill="url(#iconTeal)" opacity="0.9"/>
+      <text x="670" y="265" text-anchor="middle" font-size="12" fill="white" font-weight="700">03</text>
+      <text data-editable="text" x="705" y="256" font-family="'SF Pro Display',Inter,sans-serif" font-size="15" font-weight="700" fill="white">RMBG-2.0 去背</text>
+      <text data-editable="text" x="705" y="274" font-family="'SF Pro Display',Inter,sans-serif" font-size="12" fill="rgba(0,224,192,0.85)">Background Removal</text>
+      <rect x="660" y="294" width="210" height="56" rx="10" fill="rgba(0,224,192,0.07)" stroke="rgba(0,224,192,0.15)" stroke-width="1"/>
+      <text x="765" y="318" text-anchor="middle" font-size="22">🪄</text>
+      <text data-editable="text" x="765" y="340" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="rgba(255,255,255,0.5)">精准背景消除 · 元素提取</text>
+      <text data-editable="text" x="765" y="396" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="rgba(255,255,255,0.35)" font-style="italic">分离前景元素，保留透明背景</text>
+
+      <!-- Arrow 3→4 -->
+      <line x1="892" y1="322" x2="928" y2="322" stroke="url(#arrowGrad)" stroke-width="2" opacity="0.7"/>
+      <polygon points="928,317 938,322 928,327" fill="#6480ff" opacity="0.8"/>
+
+      <!-- Card 4 -->
+      <rect data-editable="rect" x="940" y="235" width="245" height="175" rx="16" fill="url(#cardIndigo)" stroke="rgba(100,128,255,0.3)" stroke-width="1"/>
+      <rect x="940" y="235" width="245" height="4" rx="2" fill="url(#iconIndigo)" opacity="0.8"/>
+      <circle cx="965" cy="260" r="14" fill="url(#iconIndigo)" opacity="0.9"/>
+      <text x="965" y="265" text-anchor="middle" font-size="12" fill="white" font-weight="700">04</text>
+      <text data-editable="text" x="1000" y="256" font-family="'SF Pro Display',Inter,sans-serif" font-size="15" font-weight="700" fill="white">VLM SVG 合成</text>
+      <text data-editable="text" x="1000" y="274" font-family="'SF Pro Display',Inter,sans-serif" font-size="12" fill="rgba(100,128,255,0.85)">SVG Generation</text>
+      <rect x="955" y="294" width="210" height="56" rx="10" fill="rgba(100,128,255,0.07)" stroke="rgba(100,128,255,0.15)" stroke-width="1"/>
+      <text x="1060" y="318" text-anchor="middle" font-size="22">📐</text>
+      <text data-editable="text" x="1060" y="340" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="rgba(255,255,255,0.5)">多模态 VLM · SVG 生成</text>
+      <text data-editable="text" x="1060" y="396" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="rgba(255,255,255,0.35)" font-style="italic">输出可编辑矢量学术插图</text>
+
+      <!-- Features row label -->
+      <text data-editable="text" x="600" y="454" text-anchor="middle"
+        font-family="'SF Pro Display',Inter,sans-serif" font-size="13" font-weight="600"
+        fill="rgba(255,255,255,0.45)" letter-spacing="2">核心优势  ·  Key Features</text>
+
+      <!-- Feature badges -->
+      <rect data-editable="rect" x="55" y="470" width="240" height="100" rx="14" fill="rgba(0,170,255,0.06)" stroke="rgba(0,170,255,0.2)" stroke-width="1"/>
+      <text x="80" y="506" font-size="24">🔌</text>
+      <text data-editable="text" x="115" y="503" font-family="'SF Pro Display',Inter,sans-serif" font-size="14" font-weight="600" fill="white">多服务商支持</text>
+      <text data-editable="text" x="115" y="521" font-family="Inter,sans-serif" font-size="12" fill="rgba(255,255,255,0.45)">OpenRouter · 扁鹊 · Gemini</text>
+      <text data-editable="text" x="80" y="552" font-family="Inter,sans-serif" font-size="11" fill="rgba(0,170,255,0.7)">一键切换 · 无需改代码</text>
+
+      <rect data-editable="rect" x="313" y="470" width="240" height="100" rx="14" fill="rgba(160,96,255,0.06)" stroke="rgba(160,96,255,0.2)" stroke-width="1"/>
+      <text x="338" y="506" font-size="24">🏠</text>
+      <text data-editable="text" x="373" y="503" font-family="'SF Pro Display',Inter,sans-serif" font-size="14" font-weight="600" fill="white">本地大模型</text>
+      <text data-editable="text" x="373" y="521" font-family="Inter,sans-serif" font-size="12" fill="rgba(255,255,255,0.45)">Ollama · LM Studio · vLLM</text>
+      <text data-editable="text" x="338" y="552" font-family="Inter,sans-serif" font-size="11" fill="rgba(160,96,255,0.7)">数据不出门 · 完全私有化</text>
+
+      <rect data-editable="rect" x="571" y="470" width="240" height="100" rx="14" fill="rgba(0,224,192,0.06)" stroke="rgba(0,224,192,0.2)" stroke-width="1"/>
+      <text x="596" y="506" font-size="24">🎨</text>
+      <text data-editable="text" x="631" y="503" font-family="'SF Pro Display',Inter,sans-serif" font-size="14" font-weight="600" fill="white">可编辑 SVG</text>
+      <text data-editable="text" x="631" y="521" font-family="Inter,sans-serif" font-size="12" fill="rgba(255,255,255,0.45)">Inkscape · Figma · AI 编辑</text>
+      <text data-editable="text" x="596" y="552" font-family="Inter,sans-serif" font-size="11" fill="rgba(0,224,192,0.7)">每个元素独立 · 自由修改</text>
+
+      <rect data-editable="rect" x="829" y="470" width="312" height="100" rx="14" fill="rgba(100,128,255,0.06)" stroke="rgba(100,128,255,0.2)" stroke-width="1"/>
+      <text x="854" y="506" font-size="24">🚀</text>
+      <text data-editable="text" x="889" y="503" font-family="'SF Pro Display',Inter,sans-serif" font-size="14" font-weight="600" fill="white">三种部署方式</text>
+      <text data-editable="text" x="889" y="521" font-family="Inter,sans-serif" font-size="12" fill="rgba(255,255,255,0.45)">Web UI · CLI · Docker</text>
+      <text data-editable="text" x="854" y="552" font-family="Inter,sans-serif" font-size="11" fill="rgba(100,128,255,0.7)">按需选择 · 灵活适配各种环境</text>
+
+      <!-- Quote -->
+      <line x1="400" y1="602" x2="800" y2="602" stroke="url(#arrowGrad)" stroke-width="1" opacity="0.25"/>
+      <text data-editable="text" x="600" y="640" text-anchor="middle"
+        font-family="'SF Pro Display',Inter,sans-serif" font-size="18" font-weight="300"
+        fill="rgba(255,255,255,0.5)" font-style="italic">
+        " One more thing — now your figures draw themselves. "
+      </text>
+
+      <!-- Stats -->
+      <text data-editable="text" x="240" y="700" text-anchor="middle" font-family="'SF Pro Display',Inter,sans-serif" font-size="34" font-weight="800" fill="url(#titleGrad)">4</text>
+      <text data-editable="text" x="240" y="722" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" fill="rgba(255,255,255,0.4)">自动化步骤</text>
+      <text data-editable="text" x="480" y="700" text-anchor="middle" font-family="'SF Pro Display',Inter,sans-serif" font-size="34" font-weight="800" fill="url(#titleGrad)">3+</text>
+      <text data-editable="text" x="480" y="722" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" fill="rgba(255,255,255,0.4)">LLM 服务商</text>
+      <text data-editable="text" x="720" y="700" text-anchor="middle" font-family="'SF Pro Display',Inter,sans-serif" font-size="34" font-weight="800" fill="url(#titleGrad)">100%</text>
+      <text data-editable="text" x="720" y="722" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" fill="rgba(255,255,255,0.4)">可编辑输出</text>
+      <text data-editable="text" x="960" y="700" text-anchor="middle" font-family="'SF Pro Display',Inter,sans-serif" font-size="34" font-weight="800" fill="url(#titleGrad)">MIT</text>
+      <text data-editable="text" x="960" y="722" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" fill="rgba(255,255,255,0.4)">开源许可证</text>
+
+      <line x1="55" y1="790" x2="1145" y2="790" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="600" y="798" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="rgba(255,255,255,0.2)">github.com/ResearAI/AutoFigure-Edit</text>
+    </svg>
+  </div>
+
+  <!-- Floating edit popup -->
+  <div id="edit-popup">
+    <div class="popup-title" id="popup-title">编辑元素</div>
+    <div id="popup-text-fields">
+      <div class="popup-row">
+        <label>文字</label>
+        <textarea id="popup-text-input" rows="2" placeholder="输入文字内容"></textarea>
+      </div>
+      <div class="popup-row">
+        <label>颜色</label>
+        <input type="color" id="popup-text-fill" value="#ffffff" oninput="liveTextColor(this.value)"/>
+        <span style="font-size:12px;color:rgba(255,255,255,.4)">文字颜色</span>
+      </div>
+      <div class="popup-row">
+        <label>字号</label>
+        <input type="range" id="popup-font-size" min="8" max="72" value="14" oninput="liveFontSize(this.value)"/>
+        <span id="popup-font-size-val" style="font-size:12px;color:rgba(255,255,255,.5);width:28px">14</span>
+      </div>
+    </div>
+    <div id="popup-rect-fields" style="display:none">
+      <div class="popup-row">
+        <label>填充色</label>
+        <input type="color" id="popup-rect-fill" value="#0a2a4a" oninput="liveRectFill(this.value)"/>
+        <span style="font-size:12px;color:rgba(255,255,255,.4)">背景颜色</span>
+      </div>
+      <div class="popup-row">
+        <label>描边色</label>
+        <input type="color" id="popup-rect-stroke" value="#00aaff" oninput="liveRectStroke(this.value)"/>
+        <span style="font-size:12px;color:rgba(255,255,255,.4)">边框颜色</span>
+      </div>
+      <div class="popup-row">
+        <label>透明度</label>
+        <input type="range" id="popup-rect-opacity" min="0" max="100" value="100" oninput="liveRectOpacity(this.value)"/>
+        <span id="popup-rect-opacity-val" style="font-size:12px;color:rgba(255,255,255,.5);width:32px">100%</span>
+      </div>
+    </div>
+    <div class="popup-btns">
+      <button class="popup-btn ok" onclick="applyEdit()">✓ 应用</button>
+      <button class="popup-btn cancel" onclick="closePopup()">✕ 取消</button>
+    </div>
+  </div>
+
+  <!-- Pipeline section -->
+  <section class="reveal" style="margin-bottom:64px">
+    <h2 class="section-title">四步全自动流水线</h2>
+    <div class="pipeline">
+      <div class="step-card">
+        <div class="step-num s-blue">Step 01</div>
+        <div class="step-icon si-blue">🤖</div>
+        <h3>LLM 文图生成</h3>
+        <p>大语言模型解析论文方法段文字，理解研究架构，生成初始概念示意图像</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num s-purple">Step 02</div>
+        <div class="step-icon si-purple">✂️</div>
+        <h3>SAM3 语义分割</h3>
+        <p>SAM3 对生成图像进行精准语义分割，识别并定位每个独立的视觉元素</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num s-teal">Step 03</div>
+        <div class="step-icon si-teal">🪄</div>
+        <h3>RMBG-2.0 去背</h3>
+        <p>智能背景消除，精准提取各元素前景，为 SVG 矢量化做准备</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num s-indigo">Step 04</div>
+        <div class="step-icon si-indigo">📐</div>
+        <h3>VLM SVG 合成</h3>
+        <p>多模态 VLM 将提取元素重组为结构化、可编辑的 SVG 学术插图</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <h2 class="section-title">为研究者而设计</h2>
+    <div class="features">
+      <div class="feat-card"><div class="feat-icon">🔌</div><h4>多 LLM 服务商</h4><p>支持 OpenRouter、扁鹊（国内友好）、Google Gemini 及任意 OpenAI 兼容接口，一键切换</p></div>
+      <div class="feat-card"><div class="feat-icon">🏠</div><h4>本地私有部署</h4><p>兼容 Ollama、LM Studio、vLLM，数据完全留在本地，满足敏感研究的隐私要求</p></div>
+      <div class="feat-card"><div class="feat-icon">🎨</div><h4>全元素可编辑</h4><p>输出标准 SVG 格式，在 Inkscape、Figma 或 AI 工具中自由调整每个图形元素</p></div>
+      <div class="feat-card"><div class="feat-icon">🚀</div><h4>灵活部署方式</h4><p>Web UI 图形界面、CLI 命令行、Docker 容器三种模式，适配不同使用场景</p></div>
+      <div class="feat-card"><div class="feat-icon">⚡</div><h4>SAM3 多后端</h4><p>支持 Roboflow 免费 API、fal.ai 付费高性能 API 及本地 GPU 推理，按需选择</p></div>
+      <div class="feat-card"><div class="feat-icon">🏆</div><h4>ICLR 2026 认可</h4><p>西湖大学 × ResearAI 出品，学术水准背书，MIT 开源许可，社区持续维护</p></div>
+    </div>
+  </section>
+
+  <section class="cta-section reveal">
+    <p>开箱即用，让图表不再成为发论文的瓶颈</p>
+    <a class="cta-btn" href="https://github.com/ResearAI/AutoFigure-Edit" target="_blank">⭐ GitHub 开源地址</a>
+    <a class="cta-ghost" href="https://arxiv.org/search/?query=AutoFigure-Edit" target="_blank">📄 查看论文</a>
+  </section>
+
+  <footer>
+    <p>AutoFigure-Edit · ICLR 2026 · Westlake University × ResearAI · MIT License</p>
+    <p style="margin-top:8px"><a href="https://github.com/ResearAI/AutoFigure-Edit">github.com/ResearAI/AutoFigure-Edit</a></p>
+  </footer>
+</div>
+
+<div id="toast">✓ 已复制到剪贴板</div>
+
+<script>
+// ── Stars ──
+const starsEl = document.getElementById('stars');
+for(let i=0;i<180;i++){
+  const s=document.createElement('div');s.className='star';
+  const sz=Math.random()*2.5+0.5;
+  s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-duration:${Math.random()*5+3}s;animation-delay:${Math.random()*6}s`;
+  starsEl.appendChild(s);
+}
+
+// ── Scroll reveal ──
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}})},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// ── Editor State ──
+let editMode=false;
+let selectedEl=null;
+let origState=null; // backup for cancel
+
+function toggleEditMode(){
+  editMode=!editMode;
+  const btn=document.getElementById('btn-edit-mode');
+  const wrap=document.getElementById('svg-container');
+  const hint=document.getElementById('edit-hint');
+  if(editMode){
+    btn.textContent='✏️ 关闭编辑';btn.classList.add('active');
+    wrap.classList.add('edit-mode');
+    document.getElementById('btn-add-text').disabled=false;
+    document.getElementById('btn-add-rect').disabled=false;
+    hint.textContent='点击 SVG 中任意高亮元素编辑，再次点击取消选中';
+    attachEditListeners();
+  } else {
+    btn.textContent='✏️ 开启编辑';btn.classList.remove('active');
+    wrap.classList.remove('edit-mode');
+    document.getElementById('btn-add-text').disabled=true;
+    document.getElementById('btn-add-rect').disabled=true;
+    document.getElementById('btn-delete').disabled=true;
+    hint.textContent='点击「开启编辑」，然后点击 SVG 中任意元素即可编辑';
+    closePopup();
+    deselectAll();
+  }
+}
+
+function attachEditListeners(){
+  const svg=document.getElementById('main-svg');
+  svg.querySelectorAll('[data-editable]').forEach(el=>{
+    el.removeEventListener('click',onElClick);
+    el.addEventListener('click',onElClick);
+  });
+}
+
+function onElClick(e){
+  if(!editMode) return;
+  e.stopPropagation();
+  if(selectedEl===e.currentTarget){closePopup();deselectAll();return;}
+  deselectAll();
+  selectedEl=e.currentTarget;
+  selectedEl.classList.add('selected');
+  document.getElementById('btn-delete').disabled=false;
+  openPopup(selectedEl, e.clientX, e.clientY);
+}
+
+document.addEventListener('click',function(e){
+  if(!editMode) return;
+  const pop=document.getElementById('edit-popup');
+  if(!pop.contains(e.target)&&!e.target.closest('[data-editable]')){
+    closePopup();deselectAll();
+  }
+});
+
+function deselectAll(){
+  document.querySelectorAll('[data-editable].selected').forEach(el=>el.classList.remove('selected'));
+  selectedEl=null;
+  document.getElementById('btn-delete').disabled=true;
+}
+
+// ── Popup ──
+function openPopup(el, cx, cy){
+  const pop=document.getElementById('edit-popup');
+  const type=el.dataset.editable;
+  document.getElementById('popup-title').textContent= type==='text'?'✏️ 编辑文字':'🎨 编辑方块';
+  document.getElementById('popup-text-fields').style.display=type==='text'?'block':'none';
+  document.getElementById('popup-rect-fields').style.display=type==='rect'?'block':'none';
+
+  if(type==='text'){
+    const txt=el.textContent.trim();
+    document.getElementById('popup-text-input').value=txt;
+    const fill=el.getAttribute('fill')||'#ffffff';
+    document.getElementById('popup-text-fill').value=toHex(fill);
+    const fs=parseInt(el.getAttribute('font-size'))||14;
+    document.getElementById('popup-font-size').value=fs;
+    document.getElementById('popup-font-size-val').textContent=fs;
+    origState={text:txt, fill:fill, fs:fs};
+  } else {
+    const fill=el.getAttribute('fill')||'#0a2a4a';
+    const stroke=el.getAttribute('stroke')||'#00aaff';
+    const opacity=parseFloat(el.getAttribute('opacity')||1)*100;
+    document.getElementById('popup-rect-fill').value=toHex(fill);
+    document.getElementById('popup-rect-stroke').value=toHex(stroke);
+    document.getElementById('popup-rect-opacity').value=opacity;
+    document.getElementById('popup-rect-opacity-val').textContent=Math.round(opacity)+'%';
+    origState={fill:fill, stroke:stroke, opacity:opacity/100};
+  }
+
+  // position popup
+  const vw=window.innerWidth, vh=window.innerHeight;
+  pop.classList.add('visible');
+  const pw=pop.offsetWidth, ph=pop.offsetHeight;
+  let left=cx+16, top=cy-20;
+  if(left+pw>vw-16) left=cx-pw-16;
+  if(top+ph>vh-16) top=vh-ph-16;
+  if(top<10) top=10;
+  pop.style.left=left+'px';pop.style.top=top+'px';
+}
+
+function closePopup(){
+  document.getElementById('edit-popup').classList.remove('visible');
+}
+
+function applyEdit(){
+  if(!selectedEl) return closePopup();
+  const type=selectedEl.dataset.editable;
+  if(type==='text'){
+    selectedEl.textContent=document.getElementById('popup-text-input').value;
+    selectedEl.setAttribute('fill',document.getElementById('popup-text-fill').value);
+    selectedEl.setAttribute('font-size',document.getElementById('popup-font-size').value);
+  } else {
+    selectedEl.setAttribute('fill',document.getElementById('popup-rect-fill').value);
+    selectedEl.setAttribute('stroke',document.getElementById('popup-rect-stroke').value);
+    const op=parseInt(document.getElementById('popup-rect-opacity').value)/100;
+    selectedEl.setAttribute('opacity',op);
+  }
+  closePopup();deselectAll();
+  showToast('✓ 已应用修改');
+}
+
+// Live preview helpers
+function liveTextColor(v){if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('fill',v)}
+function liveFontSize(v){document.getElementById('popup-font-size-val').textContent=v;if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('font-size',v)}
+function liveRectFill(v){if(selectedEl&&selectedEl.dataset.editable==='rect') selectedEl.setAttribute('fill',v)}
+function liveRectStroke(v){if(selectedEl&&selectedEl.dataset.editable==='rect') selectedEl.setAttribute('stroke',v)}
+function liveRectOpacity(v){document.getElementById('popup-rect-opacity-val').textContent=Math.round(v)+'%';if(selectedEl&&selectedEl.dataset.editable==='rect') selectedEl.setAttribute('opacity',v/100)}
+
+// Toolbar color pickers (apply to selected)
+function applyFill(v){
+  document.getElementById('fill-preview').style.background=v;
+  if(selectedEl) selectedEl.setAttribute('fill',v);
+}
+function applyTextColor(v){
+  document.getElementById('text-preview').style.background=v;
+  if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('fill',v);
+}
+
+// ── Add elements ──
+let addCounter=0;
+function addText(){
+  const svg=document.getElementById('main-svg');
+  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x','600');t.setAttribute('y',String(440+addCounter*30));
+  t.setAttribute('text-anchor','middle');t.setAttribute('font-size','16');
+  t.setAttribute('font-family','Inter,sans-serif');t.setAttribute('fill','#ffffff');
+  t.setAttribute('data-editable','text');
+  t.textContent='双击编辑文字';
+  addCounter++;
+  svg.appendChild(t);
+  t.addEventListener('click',onElClick);
+  showToast('✅ 已添加文字元素，点击编辑');
+}
+function addRect(){
+  const svg=document.getElementById('main-svg');
+  const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  r.setAttribute('x','400');r.setAttribute('y',String(440+addCounter*20));
+  r.setAttribute('width','400');r.setAttribute('height','60');r.setAttribute('rx','12');
+  r.setAttribute('fill','rgba(0,170,255,0.1)');r.setAttribute('stroke','rgba(0,170,255,0.4)');
+  r.setAttribute('stroke-width','1');r.setAttribute('data-editable','rect');
+  addCounter++;
+  svg.appendChild(r);
+  r.addEventListener('click',onElClick);
+  showToast('✅ 已添加方块，点击编辑颜色');
+}
+
+// ── Delete ──
+function deleteSelected(){
+  if(!selectedEl) return;
+  selectedEl.remove();
+  selectedEl=null;
+  document.getElementById('btn-delete').disabled=true;
+  closePopup();
+  showToast('🗑 已删除元素');
+}
+
+// ── Export ──
+function exportSVG(){
+  const svg=document.getElementById('main-svg');
+  const s=new XMLSerializer().serializeToString(svg);
+  const blob=new Blob([s],{type:'image/svg+xml'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='autofigure-edit-keynote.svg';a.click();
+  showToast('💾 SVG 已下载');
+}
+
+function exportPNG(){
+  const svg=document.getElementById('main-svg');
+  const s=new XMLSerializer().serializeToString(svg);
+  const blob=new Blob([s],{type:'image/svg+xml'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=function(){
+    const canvas=document.createElement('canvas');
+    canvas.width=1200;canvas.height=800;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0);
+    canvas.toBlob(b=>{
+      const a=document.createElement('a');a.href=URL.createObjectURL(b);
+      a.download='autofigure-edit-keynote.png';a.click();
+      showToast('🖼 PNG 已下载');
+    });
+  };
+  img.src=url;
+}
+
+// ── Toast ──
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+// ── Color util ──
+function toHex(c){
+  if(!c||c.startsWith('#')) return c||'#000000';
+  const d=document.createElement('div');d.style.color=c;
+  document.body.appendChild(d);
+  const cs=getComputedStyle(d).color;document.body.removeChild(d);
+  const m=cs.match(/\d+/g);if(!m) return '#000000';
+  return '#'+m.slice(0,3).map(n=>parseInt(n).toString(16).padStart(2,'0')).join('');
+}
+
+// Color picker preview sync
+document.getElementById('fill-color').addEventListener('input',function(){
+  document.getElementById('fill-preview').style.background=this.value;
+});
+document.getElementById('text-color').addEventListener('input',function(){
+  document.getElementById('text-preview').style.background=this.value;
+});
+</script>
+</body>
+</html>
