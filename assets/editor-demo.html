@@ -68,6 +68,7 @@ h1{font-size:clamp(42px,6vw,80px);font-weight:800;line-height:1.08;letter-spacin
 .svg-wrap.edit-mode [data-editable]{cursor:grab;transition:filter .2s}
 .svg-wrap.edit-mode [data-editable]:hover{filter:brightness(1.4) drop-shadow(0 0 6px rgba(0,170,255,.8))}
 .svg-wrap.edit-mode [data-editable].selected{filter:brightness(1.5) drop-shadow(0 0 10px rgba(0,170,255,1))}
+.svg-wrap.edit-mode [data-editable].multi-selected{filter:brightness(1.3) drop-shadow(0 0 8px rgba(255,160,0,1))}
 .svg-wrap.edit-mode [data-editable].dragging{cursor:grabbing;filter:brightness(1.6) drop-shadow(0 0 14px rgba(0,170,255,1));opacity:.85}
 
 /* drag hint badge */
@@ -79,6 +80,25 @@ h1{font-size:clamp(42px,6vw,80px);font-weight:800;line-height:1.08;letter-spacin
   display:none;
 }
 .edit-mode #drag-hint{display:block}
+
+/* alignment guide lines (SVG overlays) */
+.align-guide{
+  position:absolute;pointer-events:none;z-index:60;
+  background:rgba(255,200,0,.85);
+  transition:opacity .15s;
+}
+.align-guide.h{height:1px;left:0;right:0}
+.align-guide.v{width:1px;top:0;bottom:0}
+
+/* multi-select rubber-band */
+#rubber-band{
+  position:absolute;border:1.5px dashed rgba(0,170,255,.8);
+  background:rgba(0,170,255,.08);pointer-events:none;z-index:55;display:none;
+}
+
+/* undo/redo disabled style */
+.tb-btn:disabled{opacity:.35;cursor:not-allowed}
+.tb-btn:disabled:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
 
 /* floating edit popup */
 #edit-popup{
@@ -177,30 +197,45 @@ footer a:hover{color:var(--blue)}
     <span class="tb-label">编辑器</span>
     <button class="tb-btn" id="btn-edit-mode" onclick="toggleEditMode()">✏️ 开启编辑</button>
     <div class="tb-sep"></div>
-    <button class="tb-btn" id="btn-add-text" onclick="addText()" disabled>＋ 添加文字</button>
-    <button class="tb-btn" id="btn-add-rect" onclick="addRect()" disabled>▭ 添加方块</button>
+    <button class="tb-btn" id="btn-undo" onclick="undo()" disabled title="撤回 Ctrl+Z">↩ 撤回</button>
+    <button class="tb-btn" id="btn-redo" onclick="redo()" disabled title="重做 Ctrl+Y">↪ 重做</button>
     <div class="tb-sep"></div>
-    <span class="tb-label" style="font-size:11px">填充色</span>
+    <button class="tb-btn" id="btn-add-text" onclick="addText()" disabled>＋ 文字</button>
+    <button class="tb-btn" id="btn-add-rect" onclick="addRect()" disabled>▭ 方块</button>
+    <div class="tb-sep"></div>
+    <span class="tb-label" style="font-size:11px">对齐</span>
+    <button class="tb-btn" id="btn-align-left"   onclick="alignElements('left')"   disabled title="左对齐">⬛︎←</button>
+    <button class="tb-btn" id="btn-align-cx"     onclick="alignElements('cx')"     disabled title="横向居中">⬛︎↔</button>
+    <button class="tb-btn" id="btn-align-right"  onclick="alignElements('right')"  disabled title="右对齐">→⬛︎</button>
+    <button class="tb-btn" id="btn-align-top"    onclick="alignElements('top')"    disabled title="顶端对齐">⬛︎↑</button>
+    <button class="tb-btn" id="btn-align-cy"     onclick="alignElements('cy')"     disabled title="纵向居中">⬛︎↕</button>
+    <button class="tb-btn" id="btn-align-bottom" onclick="alignElements('bottom')" disabled title="底部对齐">↓⬛︎</button>
+    <button class="tb-btn" id="btn-dist-h"       onclick="distributeElements('h')" disabled title="横向均匀分布">↔ 均布</button>
+    <button class="tb-btn" id="btn-dist-v"       onclick="distributeElements('v')" disabled title="纵向均匀分布">↕ 均布</button>
+    <div class="tb-sep"></div>
+    <span class="tb-label" style="font-size:11px">填充</span>
     <div class="tb-color-wrap" id="fill-wrap">
       <div class="tb-color-preview" id="fill-preview" style="background:#00aaff"></div>
       <input type="color" id="fill-color" value="#00aaff" oninput="applyFill(this.value)"/>
     </div>
-    <span class="tb-label" style="font-size:11px">文字色</span>
+    <span class="tb-label" style="font-size:11px">文字</span>
     <div class="tb-color-wrap" id="text-wrap">
       <div class="tb-color-preview" id="text-preview" style="background:#ffffff"></div>
       <input type="color" id="text-color" value="#ffffff" oninput="applyTextColor(this.value)"/>
     </div>
     <div class="tb-sep"></div>
-    <button class="tb-btn" id="btn-delete" onclick="deleteSelected()" disabled>🗑 删除</button>
+    <button class="tb-btn danger" id="btn-delete" onclick="deleteSelected()" disabled>🗑 删除</button>
     <div class="tb-sep"></div>
-    <button class="tb-btn" onclick="exportSVG()">💾 导出 SVG</button>
-    <button class="tb-btn" onclick="exportPNG()">🖼 导出 PNG</button>
+    <button class="tb-btn" onclick="exportSVG()">💾 SVG</button>
+    <button class="tb-btn" onclick="exportPNG()">🖼 PNG</button>
     <span id="edit-hint">点击「开启编辑」，然后点击 SVG 中任意元素即可编辑</span>
   </div>
 
   <!-- SVG Showcase -->
   <div class="svg-wrap reveal" id="svg-container">
-    <div id="drag-hint">✦ 拖拽移动 · 单击编辑属性</div>
+    <div id="drag-hint">✦ 拖拽移动 · 单击选中 · Ctrl+单击多选 · Shift框选</div>
+    <div id="rubber-band"></div>
+    <!-- alignment guides: generated dynamically by JS -->
     <svg id="main-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
       <defs>
         <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -520,60 +555,320 @@ for(let i=0;i<180;i++){
 const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}})},{threshold:.12});
 document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
 
-// ── Editor State ──
+// ═══════════════════════════════════════════════════
+//  EDITOR STATE
+// ═══════════════════════════════════════════════════
 let editMode=false;
 let selectedEl=null;
-let origState=null; // backup for cancel
+let multiSelection=[]; // array of elements for multi-select
 
-// ── Drag State ──
-let dragEl=null;       // element being dragged
-let dragStartX=0;      // mouse start (screen px)
-let dragStartY=0;
-let dragOrigX=0;       // element attr start (SVG units)
-let dragOrigY=0;
-let dragOrigTx=0;      // for transform="translate(tx,ty)"
-let dragOrigTy=0;
-let dragMoved=false;   // true if we actually moved > threshold
+// ── Undo/Redo Stack ──
+const MAX_HISTORY=60;
+let undoStack=[];  // [{type, data}]
+let redoStack=[];
 
-/** Convert a screen-pixel delta to SVG-coordinate delta */
-function screenToSVGDelta(svg, dx, dy){
-  const rect=svg.getBoundingClientRect();
-  const vb=svg.viewBox.baseVal;
-  const scaleX=vb.width/rect.width;
-  const scaleY=vb.height/rect.height;
-  return {dx:dx*scaleX, dy:dy*scaleY};
+function pushHistory(entry){
+  undoStack.push(entry);
+  if(undoStack.length>MAX_HISTORY) undoStack.shift();
+  redoStack=[];
+  refreshUndoRedoBtns();
 }
 
-/** Get current translate values from transform attribute */
+function refreshUndoRedoBtns(){
+  document.getElementById('btn-undo').disabled = undoStack.length===0;
+  document.getElementById('btn-redo').disabled = redoStack.length===0;
+}
+
+// Snapshot an element's position attrs
+function snapshotPos(el){
+  const tag=el.tagName.toLowerCase();
+  if(tag==='g'){
+    return {transform: el.getAttribute('transform')||''};
+  } else if(tag==='circle'||tag==='ellipse'){
+    return {cx:el.getAttribute('cx'),cy:el.getAttribute('cy')};
+  } else {
+    return {x:el.getAttribute('x'),y:el.getAttribute('y')};
+  }
+}
+function restorePos(el,snap){
+  if(snap.transform!==undefined) el.setAttribute('transform',snap.transform);
+  if(snap.x!==undefined) el.setAttribute('x',snap.x);
+  if(snap.y!==undefined) el.setAttribute('y',snap.y);
+  if(snap.cx!==undefined) el.setAttribute('cx',snap.cx);
+  if(snap.cy!==undefined) el.setAttribute('cy',snap.cy);
+}
+
+// Snapshot full attrs for style changes
+function snapshotStyle(el){
+  const s={};
+  const attrs=['fill','stroke','stroke-width','opacity','font-size'];
+  attrs.forEach(a=>{ const v=el.getAttribute(a); if(v!==null) s[a]=v; });
+  s._text = el.textContent;
+  return s;
+}
+function restoreStyle(el,snap){
+  Object.keys(snap).forEach(k=>{
+    if(k==='_text') el.textContent=snap[k];
+    else el.setAttribute(k,snap[k]);
+  });
+}
+
+function undo(){
+  if(!undoStack.length) return;
+  const entry=undoStack.pop();
+  redoStack.push(entry);
+  applyHistoryEntry(entry,'undo');
+  refreshUndoRedoBtns();
+  showToast('↩ 已撤回');
+}
+function redo(){
+  if(!redoStack.length) return;
+  const entry=redoStack.pop();
+  undoStack.push(entry);
+  applyHistoryEntry(entry,'redo');
+  refreshUndoRedoBtns();
+  showToast('↪ 已重做');
+}
+
+function applyHistoryEntry(entry,dir){
+  const svg=document.getElementById('main-svg');
+  if(entry.type==='move'){
+    const snap=dir==='undo'?entry.before:entry.after;
+    // support multi-move
+    entry.elements.forEach((id,i)=>{
+      const el=svg.querySelector(`[data-uid="${id}"]`);
+      if(el) restorePos(el, snap[i]);
+    });
+  } else if(entry.type==='style'){
+    const el=svg.querySelector(`[data-uid="${entry.uid}"]`);
+    if(el) restoreStyle(el, dir==='undo'?entry.before:entry.after);
+  } else if(entry.type==='add'){
+    const el=svg.querySelector(`[data-uid="${entry.uid}"]`);
+    if(dir==='undo'){
+      if(el) el.remove();
+    } else {
+      const node=new DOMParser().parseFromString(entry.outerHTML,'image/svg+xml').documentElement;
+      svg.appendChild(svg.ownerDocument.adoptNode(node));
+      attachOneDragListener(svg.querySelector(`[data-uid="${entry.uid}"]`));
+    }
+  } else if(entry.type==='delete'){
+    if(dir==='undo'){
+      const node=new DOMParser().parseFromString(entry.outerHTML,'image/svg+xml').documentElement;
+      svg.appendChild(svg.ownerDocument.adoptNode(node));
+      attachOneDragListener(svg.querySelector(`[data-uid="${entry.uid}"]`));
+    } else {
+      const el=svg.querySelector(`[data-uid="${entry.uid}"]`);
+      if(el) el.remove();
+    }
+  } else if(entry.type==='multi-move'){
+    const snap=dir==='undo'?entry.before:entry.after;
+    entry.uids.forEach((uid,i)=>{
+      const el=svg.querySelector(`[data-uid="${uid}"]`);
+      if(el) restorePos(el,snap[i]);
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  UID SYSTEM — assign unique id to every editable el
+// ═══════════════════════════════════════════════════
+let uidCounter=1000;
+function ensureUID(el){
+  if(!el.dataset.uid) el.dataset.uid=String(uidCounter++);
+}
+function initAllUIDs(){
+  document.querySelectorAll('[data-editable]').forEach(ensureUID);
+}
+
+// ═══════════════════════════════════════════════════
+//  DRAG STATE
+// ═══════════════════════════════════════════════════
+let dragEl=null;
+let dragMulti=[];   // [{el, beforeSnap, origX, origY, origTx, origTy}]
+let dragStartX=0;
+let dragStartY=0;
+let dragMoved=false;
+
+// SVG bounding box in SVG coords
+function getElBox(el){
+  const svg=document.getElementById('main-svg');
+  try{
+    const b=el.getBBox();
+    // getBBox returns the geometric bounding box in SVG coords already
+    return {x:b.x,y:b.y,w:b.width,h:b.height,cx:b.x+b.width/2,cy:b.y+b.height/2,r:b.x+b.width,bot:b.y+b.height};
+  }catch(err){return null;}
+}
+
+function screenToSVGDelta(svg,dx,dy){
+  const rect=svg.getBoundingClientRect();
+  const vb=svg.viewBox.baseVal;
+  return {dx:dx*(vb.width/rect.width), dy:dy*(vb.height/rect.height)};
+}
+function screenToSVGPoint(svg,cx,cy){
+  const rect=svg.getBoundingClientRect();
+  const vb=svg.viewBox.baseVal;
+  return {x:(cx-rect.left)*(vb.width/rect.width)+vb.x, y:(cy-rect.top)*(vb.height/rect.height)+vb.y};
+}
+
 function getTranslateTuple(el){
   const t=el.getAttribute('transform')||'';
   const m=t.match(/translate\(\s*([-\d.]+)\s*,?\s*([-\d.]+)\s*\)/);
   return m?[parseFloat(m[1]),parseFloat(m[2])]:[0,0];
 }
 
+function getElPosXY(el){
+  const tag=el.tagName.toLowerCase();
+  if(tag==='g'){
+    const [tx,ty]=getTranslateTuple(el);
+    return {x:tx,y:ty,isTx:true};
+  } else if(tag==='circle'||tag==='ellipse'){
+    return {x:parseFloat(el.getAttribute('cx')||0),y:parseFloat(el.getAttribute('cy')||0),isCxy:true};
+  } else {
+    return {x:parseFloat(el.getAttribute('x')||0),y:parseFloat(el.getAttribute('y')||0)};
+  }
+}
+function setElPosXY(el,nx,ny){
+  const tag=el.tagName.toLowerCase();
+  if(tag==='g'){
+    el.setAttribute('transform',`translate(${nx},${ny})`);
+  } else if(tag==='circle'||tag==='ellipse'){
+    el.setAttribute('cx',nx); el.setAttribute('cy',ny);
+  } else {
+    el.setAttribute('x',nx); el.setAttribute('y',ny);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  SMART ALIGNMENT GUIDES
+// ═══════════════════════════════════════════════════
+const SNAP_THRESH=8; // SVG units
+
+let activeGuides=[];
+
+function clearGuides(){
+  document.querySelectorAll('.align-guide').forEach(g=>g.remove());
+  activeGuides=[];
+}
+
+// Returns snap candidate positions from all other editable elements
+function computeSnapTargets(excludeEls){
+  const svg=document.getElementById('main-svg');
+  const allEls=Array.from(svg.querySelectorAll('[data-editable]')).filter(e=>!excludeEls.includes(e));
+  const targets=[];
+  allEls.forEach(e=>{
+    const b=getElBox(e);
+    if(!b) return;
+    targets.push({x:b.x,type:'vl',label:'left'});
+    targets.push({x:b.cx,type:'vc',label:'cx'});
+    targets.push({x:b.r,type:'vr',label:'right'});
+    targets.push({y:b.y,type:'ht',label:'top'});
+    targets.push({y:b.cy,type:'hc',label:'cy'});
+    targets.push({y:b.bot,type:'hb',label:'bottom'});
+  });
+  return targets;
+}
+
+// Given current drag position, find snaps and draw guides
+// Returns {snapDx, snapDy} adjustments
+function applySnapAndGuides(draggedEls, proposedBoxes){
+  clearGuides();
+  const svg=document.getElementById('main-svg');
+  const svgRect=svg.getBoundingClientRect();
+  const vb=svg.viewBox.baseVal;
+  const scaleX=svgRect.width/vb.width;
+  const scaleY=svgRect.height/vb.height;
+
+  const targets=computeSnapTargets(draggedEls);
+  let bestSnapDx=null, bestSnapDy=null;
+  let snapDist=SNAP_THRESH+1;
+
+  // collect the bounding box edges of dragged group
+  const xs=proposedBoxes.flatMap(b=>[b.x,b.cx,b.r]);
+  const ys=proposedBoxes.flatMap(b=>[b.y,b.cy,b.bot]);
+
+  const guideLines=new Set();
+
+  // Horizontal snaps (y-axis)
+  targets.filter(t=>t.type==='ht'||t.type==='hc'||t.type==='hb').forEach(t=>{
+    ys.forEach(y=>{
+      const d=Math.abs(y-t.y);
+      if(d<SNAP_THRESH){
+        const sd=d;
+        if(sd<snapDist||(bestSnapDy!==null&&sd<Math.abs(bestSnapDy))){
+          bestSnapDy=t.y-y;
+          snapDist=sd;
+        }
+        guideLines.add('h:'+t.y.toFixed(1));
+      }
+    });
+  });
+
+  // Vertical snaps (x-axis)
+  targets.filter(t=>t.type==='vl'||t.type==='vc'||t.type==='vr').forEach(t=>{
+    xs.forEach(x=>{
+      const d=Math.abs(x-t.x);
+      if(d<SNAP_THRESH){
+        guideLines.add('v:'+t.x.toFixed(1));
+      }
+    });
+  });
+
+  if(bestSnapDy===null) bestSnapDy=0;
+  if(bestSnapDx===null) bestSnapDx=0;
+
+  // Draw guide lines
+  const container=document.getElementById('svg-container');
+  guideLines.forEach(gl=>{
+    const g=document.createElement('div');
+    g.className='align-guide';
+    if(gl.startsWith('h:')){
+      const svgY=parseFloat(gl.slice(2));
+      const screenY=(svgY-vb.y)*scaleY;
+      g.classList.add('h');
+      g.style.top=screenY+'px';
+    } else {
+      const svgX=parseFloat(gl.slice(2));
+      const screenX=(svgX-vb.x)*scaleX;
+      g.classList.add('v');
+      g.style.left=screenX+'px';
+    }
+    container.appendChild(g);
+    activeGuides.push(g);
+  });
+
+  return {snapDx:bestSnapDx, snapDy:bestSnapDy};
+}
+
+// ═══════════════════════════════════════════════════
+//  DRAG HANDLERS
+// ═══════════════════════════════════════════════════
 function onDragStart(e){
   if(!editMode) return;
-  const el=e.currentTarget;
-  // Only left button
   if(e.button!==0) return;
   e.preventDefault();
   e.stopPropagation();
+  const el=e.currentTarget;
+
+  // Ctrl+click → toggle multi-select, no drag
+  if(e.ctrlKey||e.metaKey){
+    toggleMultiSelect(el);
+    return;
+  }
 
   dragEl=el;
   dragStartX=e.clientX;
   dragStartY=e.clientY;
   dragMoved=false;
+
+  // Build drag group: if el is already in multiSelection, drag all; else drag only el
+  let elsToDrag=multiSelection.length>0&&multiSelection.includes(el)?multiSelection:[el];
+
+  dragMulti=elsToDrag.map(e2=>{
+    const pos=getElPosXY(e2);
+    return {el:e2, beforeSnap:snapshotPos(e2), origX:pos.x, origY:pos.y};
+  });
+
   dragEl.classList.add('dragging');
-
-  const tag=el.tagName.toLowerCase();
-  if(tag==='g'){
-    const [tx,ty]=getTranslateTuple(el);
-    dragOrigTx=tx; dragOrigTy=ty;
-  } else {
-    dragOrigX=parseFloat(el.getAttribute('x')||el.getAttribute('cx')||0);
-    dragOrigY=parseFloat(el.getAttribute('y')||el.getAttribute('cy')||0);
-  }
-
   document.addEventListener('mousemove',onDragMove);
   document.addEventListener('mouseup',onDragEnd);
 }
@@ -581,44 +876,51 @@ function onDragStart(e){
 function onDragMove(e){
   if(!dragEl) return;
   const svg=document.getElementById('main-svg');
-  const {dx,dy}=screenToSVGDelta(svg, e.clientX-dragStartX, e.clientY-dragStartY);
-  const dist=Math.hypot(e.clientX-dragStartX, e.clientY-dragStartY);
-  if(dist>4) dragMoved=true;
+  const {dx,dy}=screenToSVGDelta(svg,e.clientX-dragStartX,e.clientY-dragStartY);
+  const dist=Math.hypot(e.clientX-dragStartX,e.clientY-dragStartY);
+  if(dist>3) dragMoved=true;
+  if(!dragMoved) return;
 
-  const tag=dragEl.tagName.toLowerCase();
-  if(tag==='g'){
-    dragEl.setAttribute('transform',`translate(${dragOrigTx+dx},${dragOrigTy+dy})`);
-  } else if(tag==='text'){
-    dragEl.setAttribute('x', dragOrigX+dx);
-    dragEl.setAttribute('y', dragOrigY+dy);
-  } else if(tag==='rect'){
-    dragEl.setAttribute('x', dragOrigX+dx);
-    dragEl.setAttribute('y', dragOrigY+dy);
-  } else if(tag==='circle'||tag==='ellipse'){
-    dragEl.setAttribute('cx', dragOrigX+dx);
-    dragEl.setAttribute('cy', dragOrigY+dy);
-  } else {
-    // fallback: use transform translate
-    const [ox,oy]=getTranslateTuple(dragEl);
-    dragEl.setAttribute('transform',`translate(${dragOrigTx+dx},${dragOrigTy+dy})`);
+  // Move all dragged elements tentatively
+  dragMulti.forEach(d=>{
+    setElPosXY(d.el, d.origX+dx, d.origY+dy);
+  });
+
+  // Compute proposed boxes after tentative move
+  const proposedBoxes=dragMulti.map(d=>getElBox(d.el)).filter(Boolean);
+  const {snapDx,snapDy}=applySnapAndGuides(dragMulti.map(d=>d.el), proposedBoxes);
+
+  // Apply snap correction
+  if(snapDx||snapDy){
+    dragMulti.forEach(d=>{
+      setElPosXY(d.el, d.origX+dx+snapDx, d.origY+dy+snapDy);
+    });
   }
 }
 
 function onDragEnd(e){
   document.removeEventListener('mousemove',onDragMove);
   document.removeEventListener('mouseup',onDragEnd);
+  clearGuides();
   if(!dragEl) return;
   dragEl.classList.remove('dragging');
 
   if(dragMoved){
-    // Drag ended — select but don't open popup
+    // Record history
+    const afterSnaps=dragMulti.map(d=>snapshotPos(d.el));
+    if(dragMulti.length===1){
+      pushHistory({type:'move', elements:[dragMulti[0].el.dataset.uid], before:[dragMulti[0].beforeSnap], after:[afterSnaps[0]]});
+    } else {
+      pushHistory({type:'multi-move', uids:dragMulti.map(d=>d.el.dataset.uid), before:dragMulti.map(d=>d.beforeSnap), after:afterSnaps});
+    }
+    // Select dragged element(s)
     deselectAll();
     selectedEl=dragEl;
     selectedEl.classList.add('selected');
     document.getElementById('btn-delete').disabled=false;
-    showToast('↖↗ 已移动，单击可编辑属性');
+    showToast('↖↗ 已移动，单击编辑属性');
   } else {
-    // It was a click — open popup
+    // Click logic
     const el=dragEl;
     if(selectedEl===el){closePopup();deselectAll();}
     else{
@@ -626,12 +928,195 @@ function onDragEnd(e){
       selectedEl=el;
       selectedEl.classList.add('selected');
       document.getElementById('btn-delete').disabled=false;
-      openPopup(selectedEl, e.clientX, e.clientY);
+      openPopup(selectedEl,e.clientX,e.clientY);
     }
   }
+  dragMulti=[];
   dragEl=null;
 }
 
+// ═══════════════════════════════════════════════════
+//  RUBBER-BAND SELECTION
+// ═══════════════════════════════════════════════════
+let rbActive=false;
+let rbStartX=0,rbStartY=0;
+const rbEl=document.getElementById('rubber-band');
+
+document.getElementById('svg-container').addEventListener('mousedown',function(e){
+  if(!editMode) return;
+  if(e.target.closest('[data-editable]')) return; // let drag handle it
+  if(e.button!==0) return;
+  rbActive=true;
+  const rect=this.getBoundingClientRect();
+  rbStartX=e.clientX-rect.left;
+  rbStartY=e.clientY-rect.top;
+  rbEl.style.left=rbStartX+'px'; rbEl.style.top=rbStartY+'px';
+  rbEl.style.width='0px'; rbEl.style.height='0px';
+  rbEl.style.display='block';
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove',function(e){
+  if(!rbActive) return;
+  const rect=document.getElementById('svg-container').getBoundingClientRect();
+  const cx=e.clientX-rect.left;
+  const cy=e.clientY-rect.top;
+  const x=Math.min(cx,rbStartX), y=Math.min(cy,rbStartY);
+  const w=Math.abs(cx-rbStartX), h=Math.abs(cy-rbStartY);
+  rbEl.style.left=x+'px'; rbEl.style.top=y+'px';
+  rbEl.style.width=w+'px'; rbEl.style.height=h+'px';
+});
+
+document.addEventListener('mouseup',function(e){
+  if(!rbActive) return;
+  rbActive=false;
+  rbEl.style.display='none';
+  // Find elements within rubber band
+  const rect=document.getElementById('svg-container').getBoundingClientRect();
+  const cx=e.clientX-rect.left;
+  const cy=e.clientY-rect.top;
+  const rx1=Math.min(cx,rbStartX), ry1=Math.min(cy,rbStartY);
+  const rx2=Math.max(cx,rbStartX), ry2=Math.max(cy,rbStartY);
+  if(rx2-rx1<4||ry2-ry1<4) return; // too small, ignore
+
+  const svg=document.getElementById('main-svg');
+  const svgRect=svg.getBoundingClientRect();
+  const vb=svg.viewBox.baseVal;
+  const scaleX=svgRect.width/vb.width;
+  const scaleY=svgRect.height/vb.height;
+
+  // Convert rubber band to SVG coords
+  const svgX1=(rx1-(svgRect.left-rect.left))/scaleX+vb.x;
+  const svgY1=(ry1-(svgRect.top-rect.top))/scaleY+vb.y;
+  const svgX2=(rx2-(svgRect.left-rect.left))/scaleX+vb.x;
+  const svgY2=(ry2-(svgRect.top-rect.top))/scaleY+vb.y;
+
+  deselectAll();
+  multiSelection=[];
+  svg.querySelectorAll('[data-editable]').forEach(el=>{
+    const b=getElBox(el);
+    if(!b) return;
+    // element must overlap rubber band
+    if(b.r>svgX1&&b.x<svgX2&&b.bot>svgY1&&b.y<svgY2){
+      el.classList.add('multi-selected');
+      multiSelection.push(el);
+    }
+  });
+  if(multiSelection.length>0){
+    updateAlignBtns(true);
+    showToast(`🔲 已框选 ${multiSelection.length} 个元素`);
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  MULTI-SELECT HELPERS
+// ═══════════════════════════════════════════════════
+function toggleMultiSelect(el){
+  const idx=multiSelection.indexOf(el);
+  if(idx>=0){
+    multiSelection.splice(idx,1);
+    el.classList.remove('multi-selected');
+  } else {
+    multiSelection.push(el);
+    el.classList.add('multi-selected');
+  }
+  // also deselect single selected
+  if(selectedEl){selectedEl.classList.remove('selected');selectedEl=null;document.getElementById('btn-delete').disabled=true;}
+  updateAlignBtns(multiSelection.length>1);
+  if(multiSelection.length>0) showToast(`已选 ${multiSelection.length} 个元素 — 可对齐/均匀分布`);
+}
+
+function updateAlignBtns(enabled){
+  ['btn-align-left','btn-align-cx','btn-align-right','btn-align-top','btn-align-cy','btn-align-bottom','btn-dist-h','btn-dist-v'].forEach(id=>{
+    document.getElementById(id).disabled=!enabled;
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  ALIGNMENT & DISTRIBUTION
+// ═══════════════════════════════════════════════════
+function getActiveAlignTargets(){
+  if(multiSelection.length>1) return multiSelection;
+  // Fall back to all editable if only 1 or none selected
+  return null;
+}
+
+function alignElements(mode){
+  const els=getActiveAlignTargets();
+  if(!els||els.length<2){showToast('⚠️ 请先框选或 Ctrl+单击选中 2 个以上元素');return;}
+
+  const boxes=els.map(e=>({el:e,b:getElBox(e),pos:getElPosXY(e)}));
+  const befores=els.map(e=>snapshotPos(e));
+
+  boxes.forEach(({el,b,pos})=>{
+    if(!b) return;
+    let newX=pos.x, newY=pos.y;
+    if(mode==='left'){
+      const minX=Math.min(...boxes.map(d=>d.b?d.b.x:Infinity));
+      newX=pos.x+(minX-b.x);
+    } else if(mode==='right'){
+      const maxR=Math.max(...boxes.map(d=>d.b?d.b.r:-Infinity));
+      newX=pos.x+(maxR-b.r);
+    } else if(mode==='cx'){
+      const avgCx=boxes.reduce((s,d)=>s+(d.b?d.b.cx:0),0)/boxes.length;
+      newX=pos.x+(avgCx-b.cx);
+    } else if(mode==='top'){
+      const minY=Math.min(...boxes.map(d=>d.b?d.b.y:Infinity));
+      newY=pos.y+(minY-b.y);
+    } else if(mode==='bottom'){
+      const maxBot=Math.max(...boxes.map(d=>d.b?d.b.bot:-Infinity));
+      newY=pos.y+(maxBot-b.bot);
+    } else if(mode==='cy'){
+      const avgCy=boxes.reduce((s,d)=>s+(d.b?d.b.cy:0),0)/boxes.length;
+      newY=pos.y+(avgCy-b.cy);
+    }
+    setElPosXY(el,newX,newY);
+  });
+
+  const afters=els.map(e=>snapshotPos(e));
+  pushHistory({type:'multi-move',uids:els.map(e=>e.dataset.uid),before:befores,after:afters});
+  showToast('✓ 对齐完成');
+}
+
+function distributeElements(dir){
+  const els=getActiveAlignTargets();
+  if(!els||els.length<3){showToast('⚠️ 均匀分布需要至少 3 个元素');return;}
+
+  const boxes=els.map(e=>({el:e,b:getElBox(e),pos:getElPosXY(e)})).filter(d=>d.b);
+  const befores=els.map(e=>snapshotPos(e));
+
+  if(dir==='h'){
+    boxes.sort((a,b)=>a.b.x-b.b.x);
+    const totalSpan=boxes[boxes.length-1].b.r-boxes[0].b.x;
+    const totalW=boxes.reduce((s,d)=>s+d.b.w,0);
+    const gap=(totalSpan-totalW)/(boxes.length-1);
+    let cursor=boxes[0].b.x;
+    boxes.forEach(({el,b,pos})=>{
+      const newX=pos.x+(cursor-b.x);
+      setElPosXY(el,newX,pos.y);
+      cursor+=b.w+gap;
+    });
+  } else {
+    boxes.sort((a,b)=>a.b.y-b.b.y);
+    const totalSpan=boxes[boxes.length-1].b.bot-boxes[0].b.y;
+    const totalH=boxes.reduce((s,d)=>s+d.b.h,0);
+    const gap=(totalSpan-totalH)/(boxes.length-1);
+    let cursor=boxes[0].b.y;
+    boxes.forEach(({el,b,pos})=>{
+      const newY=pos.y+(cursor-b.y);
+      setElPosXY(el,pos.x,newY);
+      cursor+=b.h+gap;
+    });
+  }
+
+  const afters=els.map(e=>snapshotPos(e));
+  pushHistory({type:'multi-move',uids:els.map(e=>e.dataset.uid),before:befores,after:afters});
+  showToast('✓ 均匀分布完成');
+}
+
+// ═══════════════════════════════════════════════════
+//  EDIT MODE TOGGLE
+// ═══════════════════════════════════════════════════
 function toggleEditMode(){
   editMode=!editMode;
   const btn=document.getElementById('btn-edit-mode');
@@ -642,18 +1127,18 @@ function toggleEditMode(){
     wrap.classList.add('edit-mode');
     document.getElementById('btn-add-text').disabled=false;
     document.getElementById('btn-add-rect').disabled=false;
-    hint.textContent='拖拽移动元素 · 单击编辑属性 · 双击文字快速编辑';
+    hint.textContent='拖拽移动 · 单击选中 · Ctrl+单击多选 · Shift框选 | 框选后可对齐/均布';
     attachEditListeners();
   } else {
-    btn.textContent='✏️ 开启编辑';btn.classList.remove('active');
+    btn.textContent='✏️ 开启编辑';btn.classList.add=btn.classList.remove.bind(btn.classList);
+    btn.classList.remove('active');
     wrap.classList.remove('edit-mode');
     document.getElementById('btn-add-text').disabled=true;
     document.getElementById('btn-add-rect').disabled=true;
     document.getElementById('btn-delete').disabled=true;
     hint.textContent='点击「开启编辑」，然后点击 SVG 中任意元素即可编辑';
-    closePopup();
-    deselectAll();
-    // Clean up any lingering drag
+    closePopup();deselectAll();
+    clearGuides();
     document.removeEventListener('mousemove',onDragMove);
     document.removeEventListener('mouseup',onDragEnd);
   }
@@ -661,24 +1146,49 @@ function toggleEditMode(){
 
 function attachEditListeners(){
   const svg=document.getElementById('main-svg');
-  svg.querySelectorAll('[data-editable]').forEach(el=>{
-    el.removeEventListener('mousedown',onDragStart);
-    el.addEventListener('mousedown',onDragStart);
-  });
+  svg.querySelectorAll('[data-editable]').forEach(attachOneDragListener);
 }
 
-// Legacy click handler kept for elements that bypass mousedown (e.g. keyboard a11y)
-// onElClick is now only called programmatically
-function onElClick(e){
-  // handled by drag end logic
+function attachOneDragListener(el){
+  if(!el) return;
+  ensureUID(el);
+  el.removeEventListener('mousedown',onDragStart);
+  el.addEventListener('mousedown',onDragStart);
 }
 
 document.addEventListener('click',function(e){
   if(!editMode) return;
-  if(dragMoved) return; // ignore clicks that ended a drag
+  if(dragMoved) return;
   const pop=document.getElementById('edit-popup');
   if(!pop.contains(e.target)&&!e.target.closest('[data-editable]')){
     closePopup();deselectAll();
+    multiSelection.forEach(el=>el.classList.remove('multi-selected'));
+    multiSelection=[];
+    updateAlignBtns(false);
+  }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown',function(e){
+  if(!editMode) return;
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
+  else if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo();}
+  else if(e.key==='Delete'||e.key==='Backspace'){
+    if(selectedEl){e.preventDefault();deleteSelected();}
+  }
+  else if(e.key==='Escape'){closePopup();deselectAll();multiSelection.forEach(el=>el.classList.remove('multi-selected'));multiSelection=[];updateAlignBtns(false);}
+  // Arrow nudge (1 SVG unit)
+  else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&selectedEl){
+    e.preventDefault();
+    const step=e.shiftKey?10:1;
+    const pos=getElPosXY(selectedEl);
+    const before=snapshotPos(selectedEl);
+    if(e.key==='ArrowLeft') setElPosXY(selectedEl,pos.x-step,pos.y);
+    else if(e.key==='ArrowRight') setElPosXY(selectedEl,pos.x+step,pos.y);
+    else if(e.key==='ArrowUp') setElPosXY(selectedEl,pos.x,pos.y-step);
+    else setElPosXY(selectedEl,pos.x,pos.y+step);
+    pushHistory({type:'move',elements:[selectedEl.dataset.uid],before:[before],after:[snapshotPos(selectedEl)]});
   }
 });
 
@@ -688,11 +1198,13 @@ function deselectAll(){
   document.getElementById('btn-delete').disabled=true;
 }
 
-// ── Popup ──
-function openPopup(el, cx, cy){
+// ═══════════════════════════════════════════════════
+//  POPUP
+// ═══════════════════════════════════════════════════
+function openPopup(el,cx,cy){
   const pop=document.getElementById('edit-popup');
   const type=el.dataset.editable;
-  document.getElementById('popup-title').textContent= type==='text'?'✏️ 编辑文字':'🎨 编辑方块';
+  document.getElementById('popup-title').textContent=type==='text'?'✏️ 编辑文字':'🎨 编辑方块';
   document.getElementById('popup-text-fields').style.display=type==='text'?'block':'none';
   document.getElementById('popup-rect-fields').style.display=type==='rect'?'block':'none';
 
@@ -704,7 +1216,7 @@ function openPopup(el, cx, cy){
     const fs=parseInt(el.getAttribute('font-size'))||14;
     document.getElementById('popup-font-size').value=fs;
     document.getElementById('popup-font-size-val').textContent=fs;
-    origState={text:txt, fill:fill, fs:fs};
+    origState={text:txt,fill:fill,fs:fs};
   } else {
     const fill=el.getAttribute('fill')||'#0a2a4a';
     const stroke=el.getAttribute('stroke')||'#00aaff';
@@ -713,27 +1225,26 @@ function openPopup(el, cx, cy){
     document.getElementById('popup-rect-stroke').value=toHex(stroke);
     document.getElementById('popup-rect-opacity').value=opacity;
     document.getElementById('popup-rect-opacity-val').textContent=Math.round(opacity)+'%';
-    origState={fill:fill, stroke:stroke, opacity:opacity/100};
+    origState={fill:fill,stroke:stroke,opacity:opacity/100};
   }
-
-  // position popup
-  const vw=window.innerWidth, vh=window.innerHeight;
+  const vw=window.innerWidth,vh=window.innerHeight;
   pop.classList.add('visible');
-  const pw=pop.offsetWidth, ph=pop.offsetHeight;
-  let left=cx+16, top=cy-20;
+  const pw=pop.offsetWidth,ph=pop.offsetHeight;
+  let left=cx+16,top=cy-20;
   if(left+pw>vw-16) left=cx-pw-16;
   if(top+ph>vh-16) top=vh-ph-16;
   if(top<10) top=10;
   pop.style.left=left+'px';pop.style.top=top+'px';
 }
 
-function closePopup(){
-  document.getElementById('edit-popup').classList.remove('visible');
-}
+let origState=null;
+
+function closePopup(){document.getElementById('edit-popup').classList.remove('visible');}
 
 function applyEdit(){
   if(!selectedEl) return closePopup();
   const type=selectedEl.dataset.editable;
+  const before=snapshotStyle(selectedEl);
   if(type==='text'){
     selectedEl.textContent=document.getElementById('popup-text-input').value;
     selectedEl.setAttribute('fill',document.getElementById('popup-text-fill').value);
@@ -744,66 +1255,71 @@ function applyEdit(){
     const op=parseInt(document.getElementById('popup-rect-opacity').value)/100;
     selectedEl.setAttribute('opacity',op);
   }
+  const after=snapshotStyle(selectedEl);
+  pushHistory({type:'style',uid:selectedEl.dataset.uid,before:before,after:after});
   closePopup();deselectAll();
   showToast('✓ 已应用修改');
 }
 
-// Live preview helpers
 function liveTextColor(v){if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('fill',v)}
 function liveFontSize(v){document.getElementById('popup-font-size-val').textContent=v;if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('font-size',v)}
 function liveRectFill(v){if(selectedEl&&selectedEl.dataset.editable==='rect') selectedEl.setAttribute('fill',v)}
 function liveRectStroke(v){if(selectedEl&&selectedEl.dataset.editable==='rect') selectedEl.setAttribute('stroke',v)}
 function liveRectOpacity(v){document.getElementById('popup-rect-opacity-val').textContent=Math.round(v)+'%';if(selectedEl&&selectedEl.dataset.editable==='rect') selectedEl.setAttribute('opacity',v/100)}
+function applyFill(v){document.getElementById('fill-preview').style.background=v;if(selectedEl) selectedEl.setAttribute('fill',v);}
+function applyTextColor(v){document.getElementById('text-preview').style.background=v;if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('fill',v);}
 
-// Toolbar color pickers (apply to selected)
-function applyFill(v){
-  document.getElementById('fill-preview').style.background=v;
-  if(selectedEl) selectedEl.setAttribute('fill',v);
-}
-function applyTextColor(v){
-  document.getElementById('text-preview').style.background=v;
-  if(selectedEl&&selectedEl.dataset.editable==='text') selectedEl.setAttribute('fill',v);
-}
-
-// ── Add elements ──
+// ═══════════════════════════════════════════════════
+//  ADD ELEMENTS
+// ═══════════════════════════════════════════════════
 let addCounter=0;
 function addText(){
   const svg=document.getElementById('main-svg');
   const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-  t.setAttribute('x','600');t.setAttribute('y',String(440+addCounter*34));
+  t.setAttribute('x','600');t.setAttribute('y',String(440+addCounter*38));
   t.setAttribute('text-anchor','middle');t.setAttribute('font-size','16');
   t.setAttribute('font-family','Inter,sans-serif');t.setAttribute('fill','#ffffff');
   t.setAttribute('data-editable','text');
   t.textContent='拖拽移动 · 单击编辑';
   addCounter++;
   svg.appendChild(t);
-  t.addEventListener('mousedown',onDragStart);
+  ensureUID(t);
+  attachOneDragListener(t);
+  pushHistory({type:'add',uid:t.dataset.uid,outerHTML:t.outerHTML});
   showToast('✅ 已添加文字 — 可拖拽移动，单击编辑属性');
 }
 function addRect(){
   const svg=document.getElementById('main-svg');
   const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
-  r.setAttribute('x','400');r.setAttribute('y',String(440+addCounter*22));
+  r.setAttribute('x','400');r.setAttribute('y',String(440+addCounter*24));
   r.setAttribute('width','400');r.setAttribute('height','60');r.setAttribute('rx','12');
   r.setAttribute('fill','rgba(0,170,255,0.12)');r.setAttribute('stroke','rgba(0,170,255,0.45)');
   r.setAttribute('stroke-width','1.5');r.setAttribute('data-editable','rect');
   addCounter++;
   svg.appendChild(r);
-  r.addEventListener('mousedown',onDragStart);
+  ensureUID(r);
+  attachOneDragListener(r);
+  pushHistory({type:'add',uid:r.dataset.uid,outerHTML:r.outerHTML});
   showToast('✅ 已添加方块 — 可拖拽移动，单击编辑颜色');
 }
 
-// ── Delete ──
+// ═══════════════════════════════════════════════════
+//  DELETE
+// ═══════════════════════════════════════════════════
 function deleteSelected(){
   if(!selectedEl) return;
+  const before=snapshotStyle(selectedEl);
+  pushHistory({type:'delete',uid:selectedEl.dataset.uid,outerHTML:selectedEl.outerHTML});
   selectedEl.remove();
   selectedEl=null;
   document.getElementById('btn-delete').disabled=true;
   closePopup();
-  showToast('🗑 已删除元素');
+  showToast('🗑 已删除，Ctrl+Z 可撤回');
 }
 
-// ── Export ──
+// ═══════════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════════
 function exportSVG(){
   const svg=document.getElementById('main-svg');
   const s=new XMLSerializer().serializeToString(svg);
@@ -812,7 +1328,6 @@ function exportSVG(){
   a.download='autofigure-edit-keynote.svg';a.click();
   showToast('💾 SVG 已下载');
 }
-
 function exportPNG(){
   const svg=document.getElementById('main-svg');
   const s=new XMLSerializer().serializeToString(svg);
@@ -820,15 +1335,9 @@ function exportPNG(){
   const url=URL.createObjectURL(blob);
   const img=new Image();
   img.onload=function(){
-    const canvas=document.createElement('canvas');
-    canvas.width=1200;canvas.height=800;
-    const ctx=canvas.getContext('2d');
-    ctx.drawImage(img,0,0);
-    canvas.toBlob(b=>{
-      const a=document.createElement('a');a.href=URL.createObjectURL(b);
-      a.download='autofigure-edit-keynote.png';a.click();
-      showToast('🖼 PNG 已下载');
-    });
+    const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=800;
+    const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
+    canvas.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='autofigure-edit-keynote.png';a.click();showToast('🖼 PNG 已下载');});
   };
   img.src=url;
 }
@@ -836,7 +1345,7 @@ function exportPNG(){
 // ── Toast ──
 function showToast(msg){
   const t=document.getElementById('toast');t.textContent=msg;
-  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);
 }
 
 // ── Color util ──
@@ -849,13 +1358,15 @@ function toHex(c){
   return '#'+m.slice(0,3).map(n=>parseInt(n).toString(16).padStart(2,'0')).join('');
 }
 
-// Color picker preview sync
-document.getElementById('fill-color').addEventListener('input',function(){
-  document.getElementById('fill-preview').style.background=this.value;
-});
-document.getElementById('text-color').addEventListener('input',function(){
-  document.getElementById('text-preview').style.background=this.value;
-});
+document.getElementById('fill-color').addEventListener('input',function(){document.getElementById('fill-preview').style.background=this.value;});
+document.getElementById('text-color').addEventListener('input',function(){document.getElementById('text-preview').style.background=this.value;});
+
+// ── INIT ──
+// Assign UIDs and attach drag listeners on page load (so elements are always draggable when edit mode opens)
+initAllUIDs();
+// Note: drag events only activate when editMode===true, so no impact in read-only mode
+attachEditListeners();
+refreshUndoRedoBtns();
 </script>
 </body>
 </html>
