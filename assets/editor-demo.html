@@ -1049,7 +1049,7 @@ let canvasScale=1.0;
 let canvasPanX=0;
 let canvasPanY=0;
 const ZOOM_MIN=0.1;
-const ZOOM_MAX=5.0;
+const ZOOM_MAX=8.0;
 const ZOOM_STEP=0.15;
 let isPanning=false;
 let panStartX=0, panStartY=0;
@@ -2760,7 +2760,7 @@ function ungroupSelected(){
 // ═══════════════════════════════════════════════════
 //  CANVAS ZOOM & PAN
 // ═══════════════════════════════════════════════════
-const ZOOM_MIN=0.1, ZOOM_MAX=8, ZOOM_STEPS=[0.1,0.15,0.2,0.25,0.33,0.5,0.67,0.75,1,1.25,1.5,2,2.5,3,4,5,6,8];
+const ZOOM_STEPS=[0.1,0.15,0.2,0.25,0.33,0.5,0.67,0.75,1,1.25,1.5,2,2.5,3,4,5,6,8];
 
 function applyZoom(){
   const inner=document.getElementById('canvas-inner');
@@ -2821,8 +2821,9 @@ function zoomFit(){
   },{passive:false});
 })();
 
+
 // ── Space + drag to pan ──
-let isPanning=false, panStartX=0, panStartY=0, panStartPX=0, panStartPY=0;
+let panStartPX=0, panStartPY=0;
 let spaceDown=false;
 document.addEventListener('keydown',function(e){
   if(e.code==='Space'&&!e.repeat&&e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){
