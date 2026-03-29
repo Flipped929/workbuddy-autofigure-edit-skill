@@ -65,9 +65,20 @@ h1{font-size:clamp(42px,6vw,80px);font-weight:800;line-height:1.08;letter-spacin
 .svg-wrap svg{display:block;width:100%;height:auto}
 
 /* editable element highlight */
-.svg-wrap.edit-mode [data-editable]{cursor:pointer;transition:filter .2s}
+.svg-wrap.edit-mode [data-editable]{cursor:grab;transition:filter .2s}
 .svg-wrap.edit-mode [data-editable]:hover{filter:brightness(1.4) drop-shadow(0 0 6px rgba(0,170,255,.8))}
 .svg-wrap.edit-mode [data-editable].selected{filter:brightness(1.5) drop-shadow(0 0 10px rgba(0,170,255,1))}
+.svg-wrap.edit-mode [data-editable].dragging{cursor:grabbing;filter:brightness(1.6) drop-shadow(0 0 14px rgba(0,170,255,1));opacity:.85}
+
+/* drag hint badge */
+#drag-hint{
+  position:absolute;top:10px;right:14px;z-index:50;
+  background:rgba(0,170,255,.18);border:1px solid rgba(0,170,255,.35);
+  border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;
+  color:rgba(0,170,255,.9);pointer-events:none;letter-spacing:.04em;
+  display:none;
+}
+.edit-mode #drag-hint{display:block}
 
 /* floating edit popup */
 #edit-popup{
@@ -189,6 +200,7 @@ footer a:hover{color:var(--blue)}
 
   <!-- SVG Showcase -->
   <div class="svg-wrap reveal" id="svg-container">
+    <div id="drag-hint">✦ 拖拽移动 · 单击编辑属性</div>
     <svg id="main-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
       <defs>
         <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -513,6 +525,113 @@ let editMode=false;
 let selectedEl=null;
 let origState=null; // backup for cancel
 
+// ── Drag State ──
+let dragEl=null;       // element being dragged
+let dragStartX=0;      // mouse start (screen px)
+let dragStartY=0;
+let dragOrigX=0;       // element attr start (SVG units)
+let dragOrigY=0;
+let dragOrigTx=0;      // for transform="translate(tx,ty)"
+let dragOrigTy=0;
+let dragMoved=false;   // true if we actually moved > threshold
+
+/** Convert a screen-pixel delta to SVG-coordinate delta */
+function screenToSVGDelta(svg, dx, dy){
+  const rect=svg.getBoundingClientRect();
+  const vb=svg.viewBox.baseVal;
+  const scaleX=vb.width/rect.width;
+  const scaleY=vb.height/rect.height;
+  return {dx:dx*scaleX, dy:dy*scaleY};
+}
+
+/** Get current translate values from transform attribute */
+function getTranslateTuple(el){
+  const t=el.getAttribute('transform')||'';
+  const m=t.match(/translate\(\s*([-\d.]+)\s*,?\s*([-\d.]+)\s*\)/);
+  return m?[parseFloat(m[1]),parseFloat(m[2])]:[0,0];
+}
+
+function onDragStart(e){
+  if(!editMode) return;
+  const el=e.currentTarget;
+  // Only left button
+  if(e.button!==0) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  dragEl=el;
+  dragStartX=e.clientX;
+  dragStartY=e.clientY;
+  dragMoved=false;
+  dragEl.classList.add('dragging');
+
+  const tag=el.tagName.toLowerCase();
+  if(tag==='g'){
+    const [tx,ty]=getTranslateTuple(el);
+    dragOrigTx=tx; dragOrigTy=ty;
+  } else {
+    dragOrigX=parseFloat(el.getAttribute('x')||el.getAttribute('cx')||0);
+    dragOrigY=parseFloat(el.getAttribute('y')||el.getAttribute('cy')||0);
+  }
+
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragEnd);
+}
+
+function onDragMove(e){
+  if(!dragEl) return;
+  const svg=document.getElementById('main-svg');
+  const {dx,dy}=screenToSVGDelta(svg, e.clientX-dragStartX, e.clientY-dragStartY);
+  const dist=Math.hypot(e.clientX-dragStartX, e.clientY-dragStartY);
+  if(dist>4) dragMoved=true;
+
+  const tag=dragEl.tagName.toLowerCase();
+  if(tag==='g'){
+    dragEl.setAttribute('transform',`translate(${dragOrigTx+dx},${dragOrigTy+dy})`);
+  } else if(tag==='text'){
+    dragEl.setAttribute('x', dragOrigX+dx);
+    dragEl.setAttribute('y', dragOrigY+dy);
+  } else if(tag==='rect'){
+    dragEl.setAttribute('x', dragOrigX+dx);
+    dragEl.setAttribute('y', dragOrigY+dy);
+  } else if(tag==='circle'||tag==='ellipse'){
+    dragEl.setAttribute('cx', dragOrigX+dx);
+    dragEl.setAttribute('cy', dragOrigY+dy);
+  } else {
+    // fallback: use transform translate
+    const [ox,oy]=getTranslateTuple(dragEl);
+    dragEl.setAttribute('transform',`translate(${dragOrigTx+dx},${dragOrigTy+dy})`);
+  }
+}
+
+function onDragEnd(e){
+  document.removeEventListener('mousemove',onDragMove);
+  document.removeEventListener('mouseup',onDragEnd);
+  if(!dragEl) return;
+  dragEl.classList.remove('dragging');
+
+  if(dragMoved){
+    // Drag ended — select but don't open popup
+    deselectAll();
+    selectedEl=dragEl;
+    selectedEl.classList.add('selected');
+    document.getElementById('btn-delete').disabled=false;
+    showToast('↖↗ 已移动，单击可编辑属性');
+  } else {
+    // It was a click — open popup
+    const el=dragEl;
+    if(selectedEl===el){closePopup();deselectAll();}
+    else{
+      deselectAll();
+      selectedEl=el;
+      selectedEl.classList.add('selected');
+      document.getElementById('btn-delete').disabled=false;
+      openPopup(selectedEl, e.clientX, e.clientY);
+    }
+  }
+  dragEl=null;
+}
+
 function toggleEditMode(){
   editMode=!editMode;
   const btn=document.getElementById('btn-edit-mode');
@@ -523,7 +642,7 @@ function toggleEditMode(){
     wrap.classList.add('edit-mode');
     document.getElementById('btn-add-text').disabled=false;
     document.getElementById('btn-add-rect').disabled=false;
-    hint.textContent='点击 SVG 中任意高亮元素编辑，再次点击取消选中';
+    hint.textContent='拖拽移动元素 · 单击编辑属性 · 双击文字快速编辑';
     attachEditListeners();
   } else {
     btn.textContent='✏️ 开启编辑';btn.classList.remove('active');
@@ -534,30 +653,29 @@ function toggleEditMode(){
     hint.textContent='点击「开启编辑」，然后点击 SVG 中任意元素即可编辑';
     closePopup();
     deselectAll();
+    // Clean up any lingering drag
+    document.removeEventListener('mousemove',onDragMove);
+    document.removeEventListener('mouseup',onDragEnd);
   }
 }
 
 function attachEditListeners(){
   const svg=document.getElementById('main-svg');
   svg.querySelectorAll('[data-editable]').forEach(el=>{
-    el.removeEventListener('click',onElClick);
-    el.addEventListener('click',onElClick);
+    el.removeEventListener('mousedown',onDragStart);
+    el.addEventListener('mousedown',onDragStart);
   });
 }
 
+// Legacy click handler kept for elements that bypass mousedown (e.g. keyboard a11y)
+// onElClick is now only called programmatically
 function onElClick(e){
-  if(!editMode) return;
-  e.stopPropagation();
-  if(selectedEl===e.currentTarget){closePopup();deselectAll();return;}
-  deselectAll();
-  selectedEl=e.currentTarget;
-  selectedEl.classList.add('selected');
-  document.getElementById('btn-delete').disabled=false;
-  openPopup(selectedEl, e.clientX, e.clientY);
+  // handled by drag end logic
 }
 
 document.addEventListener('click',function(e){
   if(!editMode) return;
+  if(dragMoved) return; // ignore clicks that ended a drag
   const pop=document.getElementById('edit-popup');
   if(!pop.contains(e.target)&&!e.target.closest('[data-editable]')){
     closePopup();deselectAll();
@@ -652,27 +770,27 @@ let addCounter=0;
 function addText(){
   const svg=document.getElementById('main-svg');
   const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-  t.setAttribute('x','600');t.setAttribute('y',String(440+addCounter*30));
+  t.setAttribute('x','600');t.setAttribute('y',String(440+addCounter*34));
   t.setAttribute('text-anchor','middle');t.setAttribute('font-size','16');
   t.setAttribute('font-family','Inter,sans-serif');t.setAttribute('fill','#ffffff');
   t.setAttribute('data-editable','text');
-  t.textContent='双击编辑文字';
+  t.textContent='拖拽移动 · 单击编辑';
   addCounter++;
   svg.appendChild(t);
-  t.addEventListener('click',onElClick);
-  showToast('✅ 已添加文字元素，点击编辑');
+  t.addEventListener('mousedown',onDragStart);
+  showToast('✅ 已添加文字 — 可拖拽移动，单击编辑属性');
 }
 function addRect(){
   const svg=document.getElementById('main-svg');
   const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
-  r.setAttribute('x','400');r.setAttribute('y',String(440+addCounter*20));
+  r.setAttribute('x','400');r.setAttribute('y',String(440+addCounter*22));
   r.setAttribute('width','400');r.setAttribute('height','60');r.setAttribute('rx','12');
-  r.setAttribute('fill','rgba(0,170,255,0.1)');r.setAttribute('stroke','rgba(0,170,255,0.4)');
-  r.setAttribute('stroke-width','1');r.setAttribute('data-editable','rect');
+  r.setAttribute('fill','rgba(0,170,255,0.12)');r.setAttribute('stroke','rgba(0,170,255,0.45)');
+  r.setAttribute('stroke-width','1.5');r.setAttribute('data-editable','rect');
   addCounter++;
   svg.appendChild(r);
-  r.addEventListener('click',onElClick);
-  showToast('✅ 已添加方块，点击编辑颜色');
+  r.addEventListener('mousedown',onDragStart);
+  showToast('✅ 已添加方块 — 可拖拽移动，单击编辑颜色');
 }
 
 // ── Delete ──
